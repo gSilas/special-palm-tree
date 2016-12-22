@@ -1,0 +1,3 @@
+/home/dan/Sync/Default/Programming/neunet/build/CMakeFiles/edit_cache.dir
+/home/dan/Sync/Default/Programming/neunet/build/CMakeFiles/rebuild_cache.dir
+/home/dan/Sync/Default/Programming/neunet/build/CMakeFiles/neunet.dir

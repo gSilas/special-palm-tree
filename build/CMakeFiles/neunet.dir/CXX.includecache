@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/layer.h
+cmath
+-
+neuron.h
+../include/neuron.h
+
+../include/network.h
+algorithm
+-
+cstring
+-
+iostream
+-
+layer.h
+../include/layer.h
+
+../include/neuron.h
+cstdlib
+-
+
+/home/dan/Sync/Default/Programming/neunet/src/layer.cpp
+layer.h
+/home/dan/Sync/Default/Programming/neunet/src/layer.h
+
+/home/dan/Sync/Default/Programming/neunet/src/main.cpp
+iostream
+-
+network.h
+/home/dan/Sync/Default/Programming/neunet/src/network.h
+
+/home/dan/Sync/Default/Programming/neunet/src/network.cpp
+network.h
+/home/dan/Sync/Default/Programming/neunet/src/network.h
+
+/home/dan/Sync/Default/Programming/neunet/src/neuron.cpp
+neuron.h
+/home/dan/Sync/Default/Programming/neunet/src/neuron.h
+

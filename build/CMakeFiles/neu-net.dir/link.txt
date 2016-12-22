@@ -1,0 +1,1 @@
+/usr/bin/c++   -g -W -Wall -std=c++11 -g   CMakeFiles/neu-net.dir/home/dan/Sync/Default/Programming/neunet/src/main.cpp.o  -o bin/neu-net -rdynamic 
