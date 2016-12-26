@@ -20,7 +20,7 @@ set(INCLUDE_DIRS
 
 IF (WIN32)
 ELSE()
-  set( CMAKE_CXX_FLAGS "-g -W -Wall -std=c++11")
+  set( CMAKE_CXX_FLAGS "-g -W -Wall -pthreads -std=c++11")
 ENDIF()
 
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O2")

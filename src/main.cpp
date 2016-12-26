@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "network.h"
+#include "parallelnetwork.h"
 
 int main(int /*argc*/, char const ** /*argv*/) {
 
@@ -64,8 +65,8 @@ int main(int /*argc*/, char const ** /*argv*/) {
         }*/
 
     std::cout << "TESTED PATTERN " << i << " DESIRED OUTPUT: " << *desiredout[i]
-              << " NET RESULT: " << net->layers[1]->neurons[0]->output
-              << std::endl;
+              << " NET RESULT: "
+              << std::round(net->layers[1]->neurons[0]->output) << std::endl;
   }
   return 0;
 }
