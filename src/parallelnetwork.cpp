@@ -1,7 +1,7 @@
 #include "parallelnetwork.h"
 
-void Network::init_network(unsigned int *inputs, unsigned int *neurons,
-                           unsigned int clayers) {
+void ParallelNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
+                                   unsigned int clayers) {
 
   count_layers = clayers;
 
@@ -13,7 +13,7 @@ void Network::init_network(unsigned int *inputs, unsigned int *neurons,
   }
 }
 
-void Network::propagate_network(const float *input) {
+void ParallelNetwork::propagate_network(const float *input) {
   std::memcpy(layers[0]->input, input, layers[0]->count_input * sizeof(float));
 
   for (unsigned int l = 0; l < count_layers; l++) {
@@ -26,8 +26,10 @@ void Network::propagate_network(const float *input) {
   }
 }
 
-float Network::train_network(const float *input, const float *awaited_output,
-                             const float learning_rate, float momentum) {
+float ParallelNetwork::train_network(const float *input,
+                                     const float *awaited_output,
+                                     const float learning_rate,
+                                     float momentum) {
 
   propagate_network(input);
   float total_error = 0.f;
@@ -76,7 +78,7 @@ float Network::train_network(const float *input, const float *awaited_output,
   return total_error;
 }
 
-Network::~Network() {
+ParallelNetwork::~ParallelNetwork() {
   for (unsigned int i = 0; i < count_layers; i++) {
     delete layers[i];
   }

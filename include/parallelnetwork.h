@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
-#include <threads>
+#include <thread>
 
 #include "layer.h"
 
@@ -21,7 +21,7 @@ struct ParallelNetwork {
   float train_network(const float *input, const float *awaited_output,
                       const float learning_rate, float momentum);
 
-  ~Network();
+  ~ParallelNetwork();
 };
 
 #endif

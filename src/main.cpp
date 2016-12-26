@@ -28,7 +28,7 @@ int main(int /*argc*/, char const ** /*argv*/) {
 
   int j = 0;
 
-  while (error > 0.00001f && j < 20000) {
+  while (error > 0.01f && j < 20000) {
     std::cout << "EPOCH " << j << std::endl;
     for (size_t i = 0; i < 4; i++) {
       error += (long double)net->train_network(pattern[i], desiredout[i],
