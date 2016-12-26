@@ -8,15 +8,11 @@
 #include "layer.h"
 
 struct Network {
-
-  Layer *input_layer;
-  Layer *output_layer;
-  Layer **hidden_layers;
+  Layer **layers;
 
   unsigned int count_hiddenlayers;
 
-  void init_network(unsigned int input_size, unsigned int input_neurons,
-                    unsigned int output_size, unsigned int *hidden_inputs,
+  void init_network(unsigned int *inputs, unsigned int *neurons,
                     unsigned int chidden_layers);
 
   void propagate_network(const float *input);

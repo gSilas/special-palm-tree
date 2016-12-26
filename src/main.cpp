@@ -12,13 +12,14 @@ int main(int /*argc*/, char const ** /*argv*/) {
 
   float pattern[4][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
   float desiredout[4][1] = {{0}, {1}, {1}, {0}};
-  // unsigned int hidden[] = {4, 4, 4, 4};
+  unsigned int inputs[] = {2, 3};
+  unsigned int neurons[] = {3, 1};
 
   Network *net = new Network;
-  net->init_network(2, 3, 1, 0, 0);
+  net->init_network(inputs, neurons, 0);
 
-  float learning_rate = 0.15f;
-  float momentum = 0.9f;
+  float learning_rate = 0.9f;
+  float momentum = 0.f;
 
   double error = 0.0;
   int i = 0;
@@ -33,7 +34,7 @@ int main(int /*argc*/, char const ** /*argv*/) {
                                       momentum);
   error /= 4;
 
-  while (error > 0.0001f && i < 100000) {
+  while (error > 0.0001f && i < 50000) {
     std::cout << "EPOCH " << i << std::endl;
     // std::cout << "LEARNIGN RATE " << learning_rate << std::endl;
     // std::cout << "MOMENTUM " << momentum << std::endl;

@@ -25,7 +25,7 @@ void Layer::propagate_layer() {
       output += neurons[i]->weights[j] * input[j];
     }
 
-    output += neurons[i]->wbias * neurons[i]->bias;
+    output += neurons[i]->wbias;
 
     neurons[i]->output = 1.f / (1.f + exp(-output));
   }
@@ -36,6 +36,6 @@ Layer::~Layer() {
   for (unsigned int i = 0; i < count_neurons; i++) {
     delete neurons[i];
   }
-
+  delete neurons;
   delete input;
 }

@@ -6,9 +6,9 @@
 struct Neuron {
 
   float *weights;
-  float *deltas;
+  float delta;
+  float *prvdeltas;
   float output;
-  float bias;
   float wbias;
 
   void init_neuron(unsigned int inputsize);
