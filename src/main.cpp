@@ -4,61 +4,68 @@
 #include "network.h"
 
 int main(int /*argc*/, char const ** /*argv*/) {
-  /*
-    if (argc <= 1) {
-      std::cerr << "No valid input! Use 'h' for help!" << std::endl;
-      return EXIT_FAILURE;
-    }*/
 
-  float pattern[4][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
-  float desiredout[4][1] = {{0}, {1}, {1}, {0}};
+  float pattern[4][2] = {{0, 0}, {1, 1}, {0, 1}, {1, 0}};
+  float desiredout[4][1] = {{0}, {0}, {1}, {1}};
   unsigned int inputs[] = {2, 3};
   unsigned int neurons[] = {3, 1};
 
   Network *net = new Network;
-  net->init_network(inputs, neurons, 0);
+  net->init_network(inputs, neurons, 2);
 
-  float learning_rate = 0.9f;
-  float momentum = 0.f;
+  float learning_rate = 0.3f;
+  float momentum = 0.8f;
 
-  double error = 0.0;
-  int i = 0;
+  long double error = 0.0;
 
-  error += (double)net->train_network(pattern[0], desiredout[0], learning_rate,
-                                      momentum);
-  error += (double)net->train_network(pattern[1], desiredout[1], learning_rate,
-                                      momentum);
-  error += (double)net->train_network(pattern[2], desiredout[2], learning_rate,
-                                      momentum);
-  error += (double)net->train_network(pattern[3], desiredout[3], learning_rate,
-                                      momentum);
+  for (size_t i = 0; i < 4; i++) {
+    error += (long double)net->train_network(pattern[i], desiredout[i],
+                                             learning_rate, momentum);
+  }
+
   error /= 4;
 
-  while (error > 0.0001f && i < 50000) {
-    std::cout << "EPOCH " << i << std::endl;
-    // std::cout << "LEARNIGN RATE " << learning_rate << std::endl;
-    // std::cout << "MOMENTUM " << momentum << std::endl;
+  int j = 0;
 
-    error += (double)net->train_network(pattern[0], desiredout[0],
-                                        learning_rate, momentum);
-    error += (double)net->train_network(pattern[1], desiredout[1],
-                                        learning_rate, momentum);
-    error += (double)net->train_network(pattern[2], desiredout[2],
-                                        learning_rate, momentum);
-    error += (double)net->train_network(pattern[3], desiredout[3],
-                                        learning_rate, momentum);
+  while (error > 0.00001f && j < 20000) {
+    std::cout << "EPOCH " << j << std::endl;
+    for (size_t i = 0; i < 4; i++) {
+      error += (long double)net->train_network(pattern[i], desiredout[i],
+                                               learning_rate, momentum);
+    }
     error /= 4;
-    i++;
+    j++;
     std::cout << "ERROR " << error << std::endl;
   }
 
   for (int i = 0; i < 4; i++) {
 
     net->propagate_network(pattern[i]);
+    /*
+        for (unsigned int l = 0; l < net->count_layers; l++) {
+          std::cout << std::endl
+                    << "-----" << std::endl
+                    << "Layer: " << l << std::endl
+                    << "NeuronCount " << net->layers[l]->count_neurons <<
+       std::endl;
+          for (unsigned int n = 0; n < net->layers[l]->count_neurons; n++) {
+            std::cout << std::endl
+                      << "Neuron: " << n << std::endl
+                      << "Output " << net->layers[l]->neurons[n]->output
+                      << std::endl;
+            for (unsigned int i = 0; i < net->layers[l]->count_input; i++) {
+              std::cout << std::endl
+                        << "Input: " << i << std::endl
+                        << "Input " << net->layers[l]->input[i] << std::endl
+                        << "Weight " << net->layers[l]->neurons[n]->weights[i]
+                        << std::endl;
+            }
+          }
+        }*/
 
     std::cout << "TESTED PATTERN " << i << " DESIRED OUTPUT: " << *desiredout[i]
-              << " NET RESULT: " << net->getOutput()[0] << std::endl;
+              << " NET RESULT: " << net->layers[1]->neurons[0]->output
+              << std::endl;
   }
-
   return 0;
 }

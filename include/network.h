@@ -10,17 +10,15 @@
 struct Network {
   Layer **layers;
 
-  unsigned int count_hiddenlayers;
+  unsigned int count_layers;
 
   void init_network(unsigned int *inputs, unsigned int *neurons,
-                    unsigned int chidden_layers);
+                    unsigned int clayers);
 
   void propagate_network(const float *input);
 
   float train_network(const float *input, const float *awaited_output,
                       const float learning_rate, float momentum);
-
-  float *getOutput();
 
   ~Network();
 };
