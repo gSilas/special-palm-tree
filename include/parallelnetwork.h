@@ -5,8 +5,10 @@
 #include <cstring>
 #include <iostream>
 #include <thread>
+#include <vector>
 
 #include "layer.h"
+#include "parallel.h"
 
 struct ParallelNetwork {
   Layer **layers;

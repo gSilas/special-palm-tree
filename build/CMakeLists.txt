@@ -11,6 +11,8 @@ set(SOURCE
    ${SRC_DIR}/main.cpp
    ${SRC_DIR}/neuron.cpp
    ${SRC_DIR}/network.cpp
+   ${SRC_DIR}/parallelnetwork.cpp
+   ${SRC_DIR}/parallel.cpp
 )
 
 set(INCLUDE_DIRS

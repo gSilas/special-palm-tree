@@ -17,7 +17,32 @@ void ParallelNetwork::propagate_network(const float *input) {
   std::memcpy(layers[0]->input, input, layers[0]->count_input * sizeof(float));
 
   for (unsigned int l = 0; l < count_layers; l++) {
-    layers[l]->propagate_layer();
+
+    std::vector<std::thread> threads;
+
+    unsigned int num_threads = std::thread::hardware_concurrency();
+
+    if (num_threads < layers[l]->count_neurons) {
+      num_threads = layers[l]->count_neurons;
+    }
+
+    int *tiling = new int[num_threads];
+
+    for (unsigned int i = 0; i < layers[l]->count_neurons; i++) {
+      tiling[i]++;
+    }
+
+    threads.push_back(
+        std::thread(&Parallel::tile_propagate_layer, layers[l], 0));
+    for (unsigned int i = 1; i < num_threads; i++) {
+      threads.push_back(std::thread(&Parallel::tile_propagate_layer, layers[l],
+                                    i * tiling[i - 1]));
+    }
+
+    for (unsigned int i = 0; i < threads.size(); i++) {
+      threads[i].join();
+    }
+
     if (l < count_layers - 1) {
       for (unsigned int n = 0; n < layers[l]->count_neurons; n++) {
         layers[l + 1]->input[n] = layers[l]->neurons[n]->output;
