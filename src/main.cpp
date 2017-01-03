@@ -28,15 +28,15 @@ int main(int /*argc*/, char const ** /*argv*/) {
 
   int j = 0;
 
-  while (error > 0.01f && j < 20000) {
-    std::cout << "EPOCH " << j << std::endl;
+  while (error > 0.001f && j < 20000) {
+    std::cout << "Epoch " << j << std::endl;
     for (size_t i = 0; i < 4; i++) {
       error += (long double)net->train_network(pattern[i], desiredout[i],
                                                learning_rate, momentum);
     }
     error /= 4;
     j++;
-    std::cout << "ERROR " << error << std::endl;
+    std::cout << "Error " << error << std::endl;
   }
 
   for (int i = 0; i < 4; i++) {
@@ -64,8 +64,9 @@ int main(int /*argc*/, char const ** /*argv*/) {
           }
         }*/
 
-    std::cout << "TESTED PATTERN " << i << " DESIRED OUTPUT: " << *desiredout[i]
-              << " NET RESULT: "
+    std::cout << "Input " << i << " Expected Output: " << *desiredout[i]
+              << " Network Output: " << net->layers[1]->neurons[0]->output
+              << " Rounded Network Output: "
               << std::round(net->layers[1]->neurons[0]->output) << std::endl;
   }
   return 0;
