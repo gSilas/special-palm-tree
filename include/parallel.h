@@ -7,7 +7,14 @@
 #include "layer.h"
 
 namespace Parallel {
-void tile_propagate_layer(Layer *l, int neuron_start);
+
+void tile_propagate_layer(Layer *l, int neuron_start, int neuron_end);
+
+void tile_layer_train(Layer *l, Layer *pl, int neuron_start, int neuron_end,
+                      double learning_rate);
+
+void tile_layer_update(Layer *l, int neuron_start, int neuron_end,
+                       double learning_rate, double momentum);
 }
 
 #endif

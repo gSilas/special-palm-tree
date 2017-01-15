@@ -2,6 +2,7 @@
 #define LAYER_H
 
 #include <cmath>
+#include <iostream>
 
 #include "neuron.h"
 
@@ -9,7 +10,7 @@ struct Layer {
 
   Neuron **neurons;
 
-  float *input;
+  double *input;
 
   unsigned int count_neurons;
   unsigned int count_input;
