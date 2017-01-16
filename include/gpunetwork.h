@@ -8,20 +8,23 @@
 #include <vector>
 
 #include "gpunetwork.cuh"
-#include "layer.h"
+#include "neuron.h"
 
 struct GPUNetwork {
-  Layer **layers;
+  unsigned int *net_inputs[];
+  unsigned int *net_output;
+  float *deviceIn;
+  Neuron *net_neurons;
 
   unsigned int count_layers;
 
   void init_network(unsigned int *inputs, unsigned int *neurons,
                     unsigned int clayers);
 
-  void propagate_network(const double *input);
+  void propagate_network(const float *input);
 
-  double train_network(const double *input, const double *awaited_output,
-                       const double learning_rate, double momentum);
+  float train_network(const float *input, const float *awaited_output,
+                      const float learning_rate, float momentum);
 
   ~GPUNetwork();
 };

@@ -17,5 +17,18 @@ inline void gpuAssert(cudaError_t code, const char *file, int line/*, bool abort
         //if (abort) exit(code);
      }
 }
+namespace Device {
+/*
+__global__
+void tile_layer_update(Layer *l, int neuron_start, int neuron_end, float learning_rate, float momentum);
+
+__global__
+void tile_propagate_layer(Layer *l, int neuron_start, int neuron_end);
+
+__global__
+void tile_layer_train(Layer *l, Layer *pl, int neuron_start, int neuron_end, float learning_rate);
+*/
+}
+
 
 #endif

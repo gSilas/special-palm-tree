@@ -5,13 +5,13 @@
 
 struct Neuron {
 
-  double *weights;
-  double wbias;
+  float *weights;
+  float wbias;
 
-  double delta;
-  double *prvdeltas;
+  float delta;
+  float *prvdeltas;
 
-  double output;
+  float output;
 
   void init_neuron(unsigned int inputsize);
 

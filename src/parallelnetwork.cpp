@@ -13,8 +13,8 @@ void ParallelNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
   }
 }
 
-void ParallelNetwork::propagate_network(const double *input) {
-  std::memcpy(layers[0]->input, input, layers[0]->count_input * sizeof(double));
+void ParallelNetwork::propagate_network(const float *input) {
+  std::memcpy(layers[0]->input, input, layers[0]->count_input * sizeof(float));
 
   for (unsigned int l = 0; l < count_layers; l++) {
 
@@ -69,15 +69,15 @@ void ParallelNetwork::propagate_network(const double *input) {
   }
 }
 
-double ParallelNetwork::train_network(const double *input,
-                                      const double *awaited_output,
-                                      const double learning_rate,
-                                      double momentum) {
+float ParallelNetwork::train_network(const float *input,
+                                      const float *awaited_output,
+                                      const float learning_rate,
+                                      float momentum) {
 
   propagate_network(input);
 
-  double total_error = 0;
-  double out;
+  float total_error = 0;
+  float out;
 
   Layer *output_layer = layers[count_layers - 1];
 

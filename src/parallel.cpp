@@ -3,7 +3,7 @@
 void Parallel::tile_propagate_layer(Layer *l, int neuron_start,
                                     int neuron_end) {
 
-  double output;
+  float output;
 
   for (unsigned int i = neuron_start; i < neuron_end; i++) {
 
@@ -19,9 +19,9 @@ void Parallel::tile_propagate_layer(Layer *l, int neuron_start,
   }
 }
 void Parallel::tile_layer_train(Layer *l, Layer *pl, int neuron_start,
-                                int neuron_end, double learning_rate) {
-  double out;
-  double delta = 0;
+                                int neuron_end, float learning_rate) {
+  float out;
+  float delta = 0;
   for (unsigned int i = 0; i < pl->count_neurons; i++) {
     for (unsigned int j = neuron_start; j < neuron_end; j++) {
       delta += pl->neurons[i]->weights[j] * pl->neurons[i]->delta;
@@ -36,8 +36,8 @@ void Parallel::tile_layer_train(Layer *l, Layer *pl, int neuron_start,
 }
 
 void Parallel::tile_layer_update(Layer *l, int neuron_start, int neuron_end,
-                                 double learning_rate, double momentum) {
-  double dw;
+                                 float learning_rate, float momentum) {
+  float dw;
   for (unsigned int n = neuron_start; n < neuron_end; n++) {
     for (unsigned int i = 0; i < l->count_input; i++) {
       dw = learning_rate * l->input[i] * l->neurons[n]->delta;

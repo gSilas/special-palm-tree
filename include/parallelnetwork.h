@@ -18,10 +18,10 @@ struct ParallelNetwork {
   void init_network(unsigned int *inputs, unsigned int *neurons,
                     unsigned int clayers);
 
-  void propagate_network(const double *input);
+  void propagate_network(const float *input);
 
-  double train_network(const double *input, const double *awaited_output,
-                       const double learning_rate, double momentum);
+  float train_network(const float *input, const float *awaited_output,
+                       const float learning_rate, float momentum);
 
   ~ParallelNetwork();
 };

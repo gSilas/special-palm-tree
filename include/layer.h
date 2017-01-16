@@ -10,7 +10,7 @@ struct Layer {
 
   Neuron **neurons;
 
-  double *input;
+  float *input;
 
   unsigned int count_neurons;
   unsigned int count_input;

@@ -2,7 +2,7 @@
 
 void Layer::init_layer(unsigned int insize, unsigned int neuronsize) {
   neurons = new Neuron *[neuronsize];
-  input = new double[insize];
+  input = new float[insize];
 
   for (unsigned int i = 0; i < neuronsize; i++) {
     neurons[i] = new Neuron;
@@ -15,7 +15,7 @@ void Layer::init_layer(unsigned int insize, unsigned int neuronsize) {
 
 void Layer::propagate_layer() {
 
-  double output;
+  float output;
 
   for (unsigned int i = 0; i < count_neurons; i++) {
 
