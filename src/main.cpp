@@ -1,10 +1,9 @@
-
-#include <bitset>
 #include <fstream>
 #include <iostream>
 #include <math.h>
 #include <string>
 
+#include "gpunetwork.h"
 #include "network.h"
 #include "parallelnetwork.h"
 
@@ -15,6 +14,34 @@ int ReverseInt(int i) {
   ch3 = (i >> 16) & 255;
   ch4 = (i >> 24) & 255;
   return ((int)ch1 << 24) + ((int)ch2 << 16) + ((int)ch3 << 8) + ch4;
+}
+
+void writeImage(std::vector<std::vector<double>> &imagevec) {
+  std::fstream ifile("test.pgm", std::ios::out);
+  if (!ifile.is_open()) {
+    std::cerr << "Image::write() : Failed to open!" << std::endl;
+  }
+  ifile << "P2\n";
+  ifile << "# Simple example image\n";
+  ifile << 300 << " " << 300 << '\n';
+  ifile << 255 << '\n';
+
+  for (int j = 0; j < 20; j++)
+    for (int i_row = 0; i_row < 28; ++i_row) {
+      for (int i = 0; i < 5; ++i) {
+        for (int i_col = 0; i_col < 28; ++i_col) {
+          ifile << static_cast<int>(imagevec[i + j * 20][i_col + 28 * i_row] *
+                                    255)
+                << " ";
+        }
+        ifile << "0 0 ";
+      }
+      ifile << '\n';
+    }
+  if (!ifile.good()) {
+    std::cerr << "Image::write() : Failed to write!" << std::endl;
+  }
+  ifile.close();
 }
 
 void read_Mnist(std::string filename, std::vector<std::vector<double>> &vec) {
@@ -40,46 +67,12 @@ void read_Mnist(std::string filename, std::vector<std::vector<double>> &vec) {
         for (int c = 0; c < n_cols; ++c) {
           unsigned char temp = 0;
           file.read((char *)&temp, sizeof(temp));
-          if ((double)temp < 1)
-            temp = 1;
           tp.push_back((double)(temp) / 255);
         }
       }
       vec.push_back(tp);
     }
   }
-  std::fstream ifile("test.pgm", std::ios::out);
-  if (!ifile.is_open()) {
-    std::cerr << "Image::write() : Failed to open \""
-              << "\"" << std::endl;
-    return;
-  }
-
-  // write header
-  ifile << "P2\n";
-  ifile << "# Simple example image\n";
-  ifile << 300 << " " << 300 << '\n';
-  ifile << 255 << '\n';
-
-  for (int j = 0; j < 20; j++)
-    for (int i_row = 0; i_row < 28; ++i_row) {
-      for (int i = 0; i < 5; ++i) {
-        for (int i_col = 0; i_col < 28; ++i_col) {
-          ifile << static_cast<int>(vec[i + j * 20][i_col + 28 * i_row]) << " ";
-        }
-        ifile << "0"
-              << " "
-              << "0"
-              << " ";
-      }
-      ifile << '\n';
-    }
-
-  if (!ifile.good()) {
-    std::cerr << "Image::write() : Failed to write '" << std::endl;
-    return;
-  }
-  ifile.close();
 }
 
 void read_Mnist_Label(std::string filename, std::vector<double> &vec) {
@@ -106,21 +99,21 @@ void read_Mnist_Label(std::string filename, std::vector<double> &vec) {
 void train(ParallelNetwork *net, int epochs, double learning_rate,
            double momentum) {
   std::cout << "TRAINING " << std::endl;
-  std::string imagefilename = "/home/dan/Sync/Default/Programming/"
-                              "special-palm-tree/build/bin/mnist/"
-                              "train-images-idx3-ubyte/data";
-  std::string labelfilename = "/home/dan/Sync/Default/Programming/"
-                              "special-palm-tree/build/bin/mnist/"
-                              "train-labels-idx1-ubyte/data";
+  std::string imagefilename = "mnist/train-images-idx3-ubyte/data";
+  std::string labelfilename = "mnist/train-labels-idx1-ubyte/data";
   int number_of_images = 60000;
 
   double desiredout[60000][10];
 
   // read MNIST iamge into double vector
   std::vector<std::vector<double>> imagevec;
+
   read_Mnist(imagefilename, imagevec);
+
   std::cout << imagevec.size() << std::endl;
   std::cout << imagevec[0].size() << std::endl;
+
+  writeImage(imagevec);
 
   // read MNIST label into double vector
   std::vector<double> labelvec(number_of_images);
@@ -184,7 +177,7 @@ void train(ParallelNetwork *net, int epochs, double learning_rate,
 
   int j = 0;
 
-  while (error > 0.01 && j < epochs - 1) {
+  while (error > 0.000001 && j < epochs - 1) {
     std::cout << "EPOCH " << j << std::endl;
     for (int i = 0; i < number_of_images; i++) {
       error += (double)net->train_network(&imagevec[i][0], desiredout[i],
@@ -213,12 +206,8 @@ void train(ParallelNetwork *net, int epochs, double learning_rate,
 
 void test(ParallelNetwork *net) {
   std::cout << "TESTING" << std::endl;
-  std::string imagefilename = "/home/dan/Sync/Default/Programming/"
-                              "special-palm-tree/build/bin/"
-                              "mnist/t10k-images-idx3-ubyte/data";
-  std::string labelfilename = "/home/dan/Sync/Default/Programming/"
-                              "special-palm-tree/build/bin/"
-                              "mnist/t10k-labels-idx1-ubyte/data";
+  std::string imagefilename = "mnist/t10k-images-idx3-ubyte/data";
+  std::string labelfilename = "mnist/t10k-labels-idx1-ubyte/data";
   int number_of_images = 10000;
 
   // read MNIST iamge into double vector
@@ -303,8 +292,8 @@ int main(int /*argc*/, char const ** /*argv*/) {
     }
     return 0;*/
 
-  unsigned int inputs[] = {784, 300};
-  unsigned int neurons[] = {300, 10};
+  unsigned int inputs[] = {784, 392};
+  unsigned int neurons[] = {392, 10};
 
   ParallelNetwork *net = new ParallelNetwork;
   net->init_network(inputs, neurons, 2);
@@ -312,7 +301,10 @@ int main(int /*argc*/, char const ** /*argv*/) {
   double learning_rate = 0.001;
   double momentum = 0.9;
 
-  train(net, 20, learning_rate, momentum);
+  // 26m49s SUCCESS 9398
+  // SUCCESS 9369
+
+  train(net, 50, learning_rate, momentum);
   test(net);
   return 0;
 }

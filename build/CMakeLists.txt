@@ -1,6 +1,10 @@
 # CMakeLists.txt
 cmake_minimum_required(VERSION 2.8)
+
 project( neunet)
+
+# set( CUDA_TOOLKIT_ROOT_DIR "/Developer/NVIDIA/CUDA-8.0/")
+find_package(CUDA QUIET REQUIRED)
 
 set( CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set( ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
@@ -15,22 +19,33 @@ set(SOURCE
    ${SRC_DIR}/parallel.cpp
 )
 
+set(CUDA_SOURCE
+   ${SOURCE}
+   ${SRC_DIR}/gpunetwork.cpp
+   ${SRC_DIR}/gpunetwork.cu
+)
+
 set(INCLUDE_DIRS
    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+   /usr/local/include
    /usr/include
+   /opt/cuda/include 
 )
 
 IF (WIN32)
 ELSE()
-  set( CMAKE_CXX_FLAGS "-g -W -Wall -pthread -O2 -std=c++11")
+  set( CMAKE_CXX_FLAGS "-g -W -Wall -pthread -std=c++11")
 ENDIF()
 
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O2")
 
-include_directories( ${INCLUDE_DIRS})
+set( CUDA_NVCC_FLAGS "-Wno-deprecated-gpu-targets --expt-relaxed-constexpr --resource-usage -arch=sm_50")
 
+include_directories( ${INCLUDE_DIRS})
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_BUILD_TYPE Debug)
 set(EXECUTABLE_NAME "neunet")
 
 add_executable(${EXECUTABLE_NAME} ${SOURCE})
+# cuda_add_executable( ${EXECUTABLE_NAME} ${CUDA_SOURCE} )
+set_target_properties( ${EXECUTABLE_NAME} PROPERTIES COMPILE_FLAGS "-DDEVICE_COMPILE")
