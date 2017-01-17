@@ -12,11 +12,10 @@
 #include "neuron.h"
 
 struct GPUNetwork {
-  unsigned int *net_inputs;
-  unsigned int *net_output;
+
   float *deviceIn;
-  Neuron *net_neurons;
-  Layer *net_layers;
+  Layer **net_layers;
+  Layer **device_layers;
 
   unsigned int count_layers;
 

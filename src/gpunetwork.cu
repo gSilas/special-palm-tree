@@ -1,20 +1,20 @@
 #include "gpunetwork.cuh"
 
 __global__
-void tile_propagate_layer(){
+void tile_propagate_layer(Layer* layer_dev){
 
 int tid_x = blockIdx.x*blockDim.x+threadIdx.x;
 //int tid_y = blockIdx.y*blockDim.y+threadIdx.y;
 
 float output = 0;
 
-for (unsigned int j = 0; j < net_input; j++) {
-  output += net_neurons[tid_x].weights[j] * net_input[j];
+for (unsigned int j = 0; j < layer_dev->count_input; j++) {
+  output += layer_dev->neurons[tid_x].weights[j] * layer_dev->input[j];
 }
 
-output += net_neurons[tid_x].wbias;
+output += layer_dev->neurons[tid_x].wbias;
 
-net_neurons[tid_x]->output = 1 / (1 + exp(-output));
+layer_dev->neurons[tid_x].output = 1 / (1 + exp(-output));
 }
 
 __global__
@@ -25,10 +25,10 @@ int tid_x = blockIdx.x*blockDim.x+threadIdx.x;
 
 float dw;
   for (unsigned int i = 0; i < l->count_input; i++) {
-    dw = learning_rate * l->input[i] * l->neurons[n]->delta;
-    dw += momentum * l->neurons[n]->prvdeltas[i];
-    l->neurons[tid_x]->prvdeltas[i] = dw;
-    l->neurons[tid_x]->weights[i] += dw;
+    dw = learning_rate * l->input[i] * l->neurons[n].delta;
+    dw += momentum * l->neurons[n].prvdeltas[i];
+    l->neurons[tid_x].prvdeltas[i] = dw;
+    l->neurons[tid_x].weights[i] += dw;
   }
 
 }
@@ -43,13 +43,13 @@ float out;
 float delta = 0;
 for (unsigned int i = 0; i < pl->count_neurons; i++) {
   for (unsigned int j = neuron_start; j < neuron_end; j++) {
-    delta += pl->neurons[i]->weights[j] * pl->neurons[i]->delta;
+    delta += pl->neurons[i].weights[j] * pl->neurons[i].delta;
   }
 }
 for (unsigned int n = neuron_start; n < neuron_end; n++) {
   out = l->neurons[n]->output;
 
-  l->neurons[n]->delta = out * (1 - out) * delta;
-  l->neurons[n]->wbias += learning_rate * out * (1 - out) * delta;
+  l->neurons[n].delta = out * (1 - out) * delta;
+  l->neurons[n].wbias += learning_rate * out * (1 - out) * delta;
 }
 }
