@@ -3,12 +3,13 @@
 
 #include <cmath>
 #include <iostream>
+#include <utility>
 
 #include "neuron.h"
 
-struct Layer {
-
-  Neuron **neurons;
+class Layer {
+public:
+  Neuron *neurons;
 
   float *input;
 

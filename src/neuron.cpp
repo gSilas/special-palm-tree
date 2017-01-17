@@ -9,8 +9,9 @@ void Neuron::init_neuron(unsigned int inputsize) {
   wbias = -0.5 +
           static_cast<float>(rand()) /
               (static_cast<float>(RAND_MAX / (0.5 - (-0.5))));
-  weights = float[inputsize];
-  prvdeltas = float[inputsize];
+
+  weights = new float[inputsize];
+  prvdeltas = new float[inputsize];
 
   for (unsigned int i = 0; i < inputsize; i++) {
     weights[i] =
@@ -19,4 +20,7 @@ void Neuron::init_neuron(unsigned int inputsize) {
   }
 }
 
-Neuron::~Neuron() {}
+Neuron::~Neuron() {
+  delete weights;
+  delete prvdeltas;
+}

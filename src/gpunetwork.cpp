@@ -13,7 +13,16 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
     gpuErrchk(cudaMalloc(&net_inputs[l], sizeof(float) * inputs[l]));
     neuron_count += neurons[l];
   }
+
+  Neuron tmp[neuron_count];
+  for (unsigned int l = 0; l < neuron_count; l++) {
+    tmp[l] = Neuron;
+    tmp[l].init_neuron();
+  }
+
   gpuErrchk(cudaMalloc(&net_neurons, sizeof(Neuron) * neuron_count));
+  gpuErrchk(cudaMemcpy(&net_neurons, &tmp, sizeof(Neuron) * neuron_count,
+                       cudaMemcpyHostToDevice));
 }
 
 void GPUNetwork::propagate_network(const float *input) {

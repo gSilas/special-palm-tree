@@ -226,16 +226,12 @@ void test(ParallelNetwork *net) {
   for (int i = 0; i < number_of_images; i++) {
     net->propagate_network(&imagevec[i][0]);
 
-    float out = std::round(net->layers[1]->neurons[0]->output +
-                           net->layers[1]->neurons[1]->output +
-                           net->layers[1]->neurons[2]->output +
-                           net->layers[1]->neurons[3]->output +
-                           net->layers[1]->neurons[4]->output +
-                           net->layers[1]->neurons[5]->output +
-                           net->layers[1]->neurons[6]->output +
-                           net->layers[1]->neurons[7]->output +
-                           net->layers[1]->neurons[8]->output +
-                           net->layers[1]->neurons[9]->output);
+    float out = std::round(
+        net->layers[1]->neurons[0].output + net->layers[1]->neurons[1].output +
+        net->layers[1]->neurons[2].output + net->layers[1]->neurons[3].output +
+        net->layers[1]->neurons[4].output + net->layers[1]->neurons[5].output +
+        net->layers[1]->neurons[6].output + net->layers[1]->neurons[7].output +
+        net->layers[1]->neurons[8].output + net->layers[1]->neurons[9].output);
 
     if (out == labelvec[i])
       success++;

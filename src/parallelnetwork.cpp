@@ -63,16 +63,16 @@ void ParallelNetwork::propagate_network(const float *input) {
 
     if (l < count_layers - 1) {
       for (unsigned int n = 0; n < layers[l]->count_neurons; n++) {
-        layers[l + 1]->input[n] = layers[l]->neurons[n]->output;
+        layers[l + 1]->input[n] = layers[l]->neurons[n].output;
       }
     }
   }
 }
 
 float ParallelNetwork::train_network(const float *input,
-                                      const float *awaited_output,
-                                      const float learning_rate,
-                                      float momentum) {
+                                     const float *awaited_output,
+                                     const float learning_rate,
+                                     float momentum) {
 
   propagate_network(input);
 
@@ -82,14 +82,14 @@ float ParallelNetwork::train_network(const float *input,
   Layer *output_layer = layers[count_layers - 1];
 
   for (unsigned int i = 0; i < output_layer->count_neurons; i++) {
-    out = output_layer->neurons[i]->output;
+    out = output_layer->neurons[i].output;
 
     total_error += 0.5 * (awaited_output[i] - out) * (awaited_output[i] - out);
 
-    output_layer->neurons[i]->delta =
+    output_layer->neurons[i].delta =
         (awaited_output[i] - out) * out * (1 - out);
 
-    output_layer->neurons[i]->wbias +=
+    output_layer->neurons[i].wbias +=
         learning_rate * (awaited_output[i] - out) * out * (1 - out);
   }
   // std::cout << "THREAD " << std::endl;

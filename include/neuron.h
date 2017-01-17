@@ -2,9 +2,10 @@
 #define NEURON_H
 
 #include <cstdlib>
+#include <utility>
 
-struct Neuron {
-
+class Neuron {
+public:
   float *weights;
   float wbias;
 
