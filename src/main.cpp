@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string>
 
-#include "gpunetwork.h"
+#include "gpunetwork.cuh"
 #include "network.h"
 #include "parallelnetwork.h"
 
@@ -96,8 +96,7 @@ void read_Mnist_Label(std::string filename, std::vector<float> &vec) {
   }
 }
 
-void train(ParallelNetwork *net, int epochs, float learning_rate,
-           float momentum) {
+void train(GPUNetwork *net, int epochs, float learning_rate, float momentum) {
   std::cout << "TRAINING " << std::endl;
   std::string imagefilename = "mnist/train-images-idx3-ubyte/data";
   std::string labelfilename = "mnist/train-labels-idx1-ubyte/data";
@@ -204,7 +203,7 @@ void train(ParallelNetwork *net, int epochs, float learning_rate,
   }
 }
 
-void test(ParallelNetwork *net) {
+void test(GPUNetwork *net) {
   std::cout << "TESTING" << std::endl;
   std::string imagefilename = "mnist/t10k-images-idx3-ubyte/data";
   std::string labelfilename = "mnist/t10k-labels-idx1-ubyte/data";
@@ -226,14 +225,25 @@ void test(ParallelNetwork *net) {
   for (int i = 0; i < number_of_images; i++) {
     net->propagate_network(&imagevec[i][0]);
 
-    float out = std::round(
-        net->layers[1]->neurons[0].output + net->layers[1]->neurons[1].output +
-        net->layers[1]->neurons[2].output + net->layers[1]->neurons[3].output +
-        net->layers[1]->neurons[4].output + net->layers[1]->neurons[5].output +
-        net->layers[1]->neurons[6].output + net->layers[1]->neurons[7].output +
-        net->layers[1]->neurons[8].output + net->layers[1]->neurons[9].output);
+    float *out;
+    out = net->getOutput();
 
-    if (out == labelvec[i])
+    float outf = 0;
+
+    for (int i = 0; i < 10; i++) {
+      outf += out[i];
+    } /*net->layers[1]->neurons[0].output +
+                            net->layers[1]->neurons[1].output +
+                            net->layers[1]->neurons[2].output +
+                            net->layers[1]->neurons[3].output +
+                            net->layers[1]->neurons[4].output +
+                            net->layers[1]->neurons[5].output +
+                            net->layers[1]->neurons[6].output +
+                            net->layers[1]->neurons[7].output +
+                            net->layers[1]->neurons[8].output +
+                            net->layers[1]->neurons[9].output);
+  */
+    if (std::round(outf) == labelvec[i])
       success++;
 
     std::cout << "TESTED PATTERN " << i << " DESIRED OUTPUT: " << labelvec[i]
@@ -288,19 +298,31 @@ int main(int /*argc*/, char const ** /*argv*/) {
     }
     return 0;*/
 
-  unsigned int inputs[] = {784, 392};
-  unsigned int neurons[] = {392, 10};
+  unsigned int inputs[] = {2, 600};
+  unsigned int neurons[] = {600, 1};
+  //  float pattern[4][2] = {{0, 0}, {1, 1}, {0, 1}, {1, 0}};
 
-  ParallelNetwork *net = new ParallelNetwork;
+  GPUNetwork *net = new GPUNetwork;
   net->init_network(inputs, neurons, 2);
 
   float learning_rate = 0.001;
   float momentum = 0.9;
+  /*
+    for (int i = 0; i < 4; i++) {
+      net->propagate_network(pattern[i]);
+    }
 
+    float *out;
+    out = net->getOutput();
+
+    std::cout << " NET RESULT: " << out[0] << std::endl;
+  */
   // 26m49s SUCCESS 9398
   // SUCCESS 9369
 
   train(net, 5, learning_rate, momentum);
   test(net);
+
+  delete net;
   return 0;
 }

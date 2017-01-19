@@ -1,55 +1,236 @@
 #include "gpunetwork.cuh"
 
-__global__
-void tile_propagate_layer(Layer* layer_dev){
+__global__ void Device::tile_propagate_layer(
+    float *device_input, float *device_weights, float *device_wbias,
+    float *device_output, unsigned int input_size, unsigned int neuron_size,
+    unsigned int input_offset, unsigned int neuron_offset) {
 
-int tid_x = blockIdx.x*blockDim.x+threadIdx.x;
-//int tid_y = blockIdx.y*blockDim.y+threadIdx.y;
+  int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+  // int tid_y = blockIdx.y*blockDim.y+threadIdx.y;
 
-float output = 0;
+  float output = 0;
 
-for (unsigned int j = 0; j < layer_dev->count_input; j++) {
-  output += layer_dev->neurons[tid_x].weights[j] * layer_dev->input[j];
+  output += device_weights[tid_x + input_offset + neuron_offset] *
+            device_input[tid_x + input_offset + neuron_offset];
+
+  output += device_wbias[tid_x + neuron_offset];
+
+  float res = 1 / (1 + exp(-output));
+  device_output[tid_x] = res;
+  device_input[tid_x] = res;
 }
 
-output += layer_dev->neurons[tid_x].wbias;
+__global__ void
+Device::tile_update_layer(float *device_input, float *device_weights,
+                          unsigned int input_offset, unsigned int neuron_offset,
+                          float learning_rate, float momentum,
+                          float *device_delta, float *device_prvdeltas) {
 
-layer_dev->neurons[tid_x].output = 1 / (1 + exp(-output));
+  int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+  // int tid_y = blockIdx.y*blockDim.y+threadIdx.y;
+
+  float dw;
+
+  dw = learning_rate * device_input[input_offset + tid_x] *
+       device_delta[neuron_offset + tid_x];
+  dw += momentum * device_prvdeltas[tid_x + neuron_offset];
+  device_prvdeltas[tid_x + neuron_offset + input_offset] = dw;
+  device_weights[tid_x + neuron_offset + input_offset] += dw;
 }
 
-__global__
-void tile_update_layer(){
+__global__ void Device::tile_layer_train(float* device_weights,float *device_wbias,
+                                         float *device_output,
+                                         float *device_awaited_output,
+                                         unsigned int neuron_offset,
+                                         float learning_rate, float *device_delta,
+                                         unsigned int layer_offset) {
 
-int tid_x = blockIdx.x*blockDim.x+threadIdx.x;
-//int tid_y = blockIdx.y*blockDim.y+threadIdx.y;
+  int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+  // int tid_y = blockIdx.y*blockDim.y+threadIdx.y;
 
-float dw;
-  for (unsigned int i = 0; i < l->count_input; i++) {
-    dw = learning_rate * l->input[i] * l->neurons[n].delta;
-    dw += momentum * l->neurons[n].prvdeltas[i];
-    l->neurons[tid_x].prvdeltas[i] = dw;
-    l->neurons[tid_x].weights[i] += dw;
+  float out;
+  float delta = 0;
+
+  delta +=
+      device_weights[layer_offset + tid_x] * device_delta[layer_offset + tid_x];
+
+  out = device_output[tid_x + neuron_offset];
+
+  device_delta[tid_x + neuron_offset] = out * (1 - out) * delta;
+  device_wbias[tid_x + neuron_offset] +=
+      learning_rate * out * (1 - out) * delta;
+}
+
+__global__ void Device::tile_outlayer_train(
+    float *device_wbias, float *device_output, float *device_awaited_output,
+    unsigned int neuron_offset, float learning_rate, float *device_delta) {
+
+  int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+  // int tid_y = blockIdx.y*blockDim.y+threadIdx.y;
+  float out;
+  out = device_output[tid_x + neuron_offset];
+
+  device_delta[tid_x + neuron_offset] =
+      (device_awaited_output[tid_x + neuron_offset] - out) * out * (1 - out);
+
+  device_wbias[tid_x + neuron_offset] +=
+      learning_rate * (device_awaited_output[tid_x + neuron_offset] - out) *
+      out * (1 - out);
+}
+
+void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
+                              unsigned int clayers) {
+
+  count_layers = clayers;
+  input_size = new unsigned int[clayers];
+  neuron_size = new unsigned int[clayers];
+  sum_input_size = new unsigned int[clayers + 1];
+  sum_neuron_size = new unsigned int[clayers + 1];
+  sum_input_size[0] = 0;
+  sum_neuron_size[0] = 0;
+  num_blocks = new int[clayers];
+  threads_per_block = new int[clayers];
+
+  std::memcpy(input_size, inputs, sizeof(unsigned int) * clayers);
+  std::memcpy(neuron_size, neurons, sizeof(unsigned int) * clayers);
+
+  cudaDeviceProp device_props;
+  checkErrorsCuda(cudaGetDeviceProperties(&device_props, 0));
+
+  size_t input_size = 0;
+  size_t neuron_size = 0;
+  size_t weight_size = 0;
+
+  for (int l = 0; l < clayers; l++) {
+    input_size += inputs[l];
+    neuron_size += neurons[l];
+
+    weight_size += inputs[l] * neurons[l];
+    if (neurons[l] > device_props.maxThreadsPerBlock)
+      threads_per_block[l] = device_props.maxThreadsPerBlock;
+    else
+      threads_per_block[l] = neurons[l];
+
+    num_blocks[l] = (int)(neurons[l] / threads_per_block[l]);
+
+    if (num_blocks[l] == 0)
+      num_blocks[l]++;
+    else if (0 != neurons[l] % num_blocks[l])
+      num_blocks[l]++;
+
+    std::cout << "num_blocks = " << num_blocks[l] << std::endl;
   }
 
+  for (int l = 1; l < clayers + 1; l++) {
+    sum_input_size[l] = inputs[l] + sum_input_size[l - 1];
+    sum_neuron_size[l] = neurons[l] + sum_neuron_size[l - 1];
+  }
+
+  std::cout << input_size << " | " << neuron_size << " | " << weight_size
+            << std::endl
+            << "cudaMalloc" << std::endl;
+
+  checkErrorsCuda(cudaMalloc(&device_input, sizeof(float) * input_size));
+
+  checkErrorsCuda(cudaMalloc(&device_wbias, sizeof(float) * neuron_size));
+  checkErrorsCuda(cudaMalloc(&device_output, sizeof(float) * neuron_size));
+  checkErrorsCuda(cudaMalloc(&device_delta, sizeof(float) * neuron_size));
+
+  checkErrorsCuda(cudaMalloc(&device_weights, sizeof(float) * weight_size));
+  checkErrorsCuda(cudaMalloc(&device_prvdeltas, sizeof(float) * weight_size));
+
+  std::cout << "cudaMemset" << std::endl;
+
+  checkErrorsCuda(cudaMemset(device_input, 0, sizeof(float) * input_size));
+
+  checkErrorsCuda(cudaMemset(device_wbias, 0, sizeof(float) * neuron_size));
+  checkErrorsCuda(cudaMemset(device_output, 0, sizeof(float) * neuron_size));
+  checkErrorsCuda(cudaMemset(device_delta, 0, sizeof(float) * neuron_size));
+
+  checkErrorsCuda(cudaMemset(device_weights, 0, sizeof(float) * weight_size));
+  checkErrorsCuda(cudaMemset(device_prvdeltas, 0, sizeof(float) * weight_size));
 }
 
-__global__
-void tile_layer_train(){
+void GPUNetwork::propagate_network(const float *input) {
 
-int tid_x = blockIdx.x*blockDim.x+threadIdx.x;
-//int tid_y = blockIdx.y*blockDim.y+threadIdx.y;
+  checkErrorsCuda(cudaMemcpy(device_input, input, input_size[0] * sizeof(float),
+                             cudaMemcpyHostToDevice));
 
-float out;
-float delta = 0;
-for (unsigned int i = 0; i < pl->count_neurons; i++) {
-  for (unsigned int j = neuron_start; j < neuron_end; j++) {
-    delta += pl->neurons[i].weights[j] * pl->neurons[i].delta;
+  for (unsigned int l = 0; l < count_layers; l++) {
+    Device::tile_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
+        device_input, device_weights, device_wbias, device_output,
+        input_size[l], neuron_size[l], sum_input_size[l], sum_neuron_size[l]);
+    cudaDeviceSynchronize();
   }
 }
-for (unsigned int n = neuron_start; n < neuron_end; n++) {
-  out = l->neurons[n]->output;
 
-  l->neurons[n].delta = out * (1 - out) * delta;
-  l->neurons[n].wbias += learning_rate * out * (1 - out) * delta;
+float GPUNetwork::train_network(const float *input, const float *awaited_output,
+                                const float learning_rate, float momentum) {
+
+  propagate_network(input);
+  float *device_awaited_output;
+  checkErrorsCuda(cudaMalloc(&device_awaited_output,
+                             sizeof(float) * neuron_size[count_layers - 1]));
+  checkErrorsCuda(cudaMemcpy(device_awaited_output, awaited_output,
+                             sizeof(float) * neuron_size[count_layers - 1],
+                             cudaMemcpyHostToDevice));
+
+  float total_error = 0;
+  float *out;
+  out = getOutput();
+
+  for (unsigned int i = 0; i < neuron_size[count_layers - 1]; i++) {
+    total_error +=
+        0.5 * (awaited_output[i] - out[i]) * (awaited_output[i] - out[i]);
+  }
+
+  Device::tile_outlayer_train<<<num_blocks[count_layers - 1],
+                                threads_per_block[count_layers - 1]>>>(
+      device_wbias, device_output, device_awaited_output,
+      sum_neuron_size[count_layers], momentum, device_delta);
+
+  for (int l = count_layers - 2; l >= 0; l--) {
+    Device::tile_layer_train<<<num_blocks[l], threads_per_block[l]>>>(
+        device_weights,device_wbias, device_output, device_awaited_output, sum_neuron_size[l],
+        learning_rate, device_delta, sum_neuron_size[l + 1]);
+  }
+
+  for (unsigned int l = 0; l < count_layers; l++) {
+    Device::tile_update_layer<<<num_blocks[l], threads_per_block[l]>>>(
+        device_input, device_weights, sum_input_size[l], sum_neuron_size[l],
+        learning_rate, learning_rate, device_delta, device_prvdeltas);
+  }
+
+  delete out;
+  checkErrorsCuda(cudaFree(device_awaited_output));
+
+  return total_error;
 }
+
+float *GPUNetwork::getOutput() {
+  float *out = new float[neuron_size[count_layers - 1]];
+
+  checkErrorsCuda(cudaMemcpy(out, device_output + sum_neuron_size[count_layers],
+                             neuron_size[count_layers - 1] * sizeof(float),
+                             cudaMemcpyDeviceToHost));
+  return out;
+}
+
+GPUNetwork::~GPUNetwork() {
+  delete num_blocks;
+  delete threads_per_block;
+  delete input_size;
+  delete neuron_size;
+  delete sum_input_size;
+  delete sum_neuron_size;
+
+  // device_land
+  checkErrorsCuda(cudaFree(device_input));
+
+  checkErrorsCuda(cudaFree(device_weights));
+  checkErrorsCuda(cudaFree(device_wbias));
+
+  checkErrorsCuda(cudaFree(device_delta));
+  checkErrorsCuda(cudaFree(device_prvdeltas));
+  checkErrorsCuda(cudaFree(device_output));
 }

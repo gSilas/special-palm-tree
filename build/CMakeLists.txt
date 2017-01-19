@@ -21,7 +21,6 @@ set(SOURCE
 
 set(CUDA_SOURCE
    ${SOURCE}
-   ${SRC_DIR}/gpunetwork.cpp
    ${SRC_DIR}/gpunetwork.cu
 )
 
@@ -29,7 +28,7 @@ set(INCLUDE_DIRS
    ${CMAKE_CURRENT_SOURCE_DIR}/../include
    /usr/local/include
    /usr/include
-   /opt/cuda/include 
+   /opt/cuda/include
 )
 
 IF (WIN32)
@@ -46,6 +45,6 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(EXECUTABLE_NAME "neunet")
 
-add_executable(${EXECUTABLE_NAME} ${SOURCE})
-# cuda_add_executable( ${EXECUTABLE_NAME} ${CUDA_SOURCE} )
+#add_executable(${EXECUTABLE_NAME} ${SOURCE})
+cuda_add_executable( ${EXECUTABLE_NAME} ${CUDA_SOURCE} )
 set_target_properties( ${EXECUTABLE_NAME} PROPERTIES COMPILE_FLAGS "-DDEVICE_COMPILE")
