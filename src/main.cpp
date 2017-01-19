@@ -298,8 +298,8 @@ int main(int /*argc*/, char const ** /*argv*/) {
     }
     return 0;*/
 
-  unsigned int inputs[] = {2, 600};
-  unsigned int neurons[] = {600, 1};
+  unsigned int inputs[] = {784, 600};
+  unsigned int neurons[] = {600, 10};
   //  float pattern[4][2] = {{0, 0}, {1, 1}, {0, 1}, {1, 0}};
 
   GPUNetwork *net = new GPUNetwork;

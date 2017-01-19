@@ -49,7 +49,7 @@ __global__ void tile_layer_train(float* device_weights,float *device_wbias,
                                          float *device_awaited_output,
                                          unsigned int neuron_offset,
                                          float learning_rate, float *device_delta,
-                                         unsigned int layer_offset);
+                                         unsigned int layer_offset, unsigned int input_size);
 }
 
 struct GPUNetwork {
