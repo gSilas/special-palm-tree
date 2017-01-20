@@ -32,24 +32,26 @@ __global__ void tile_update_layer(float *device_input, float *device_weights,
                                   unsigned int input_offset,
                                   unsigned int neuron_offset,
                                   float learning_rate, float momentum,
-                                  float *device_delta, float *device_prvdeltas);
+                                  float *device_delta, float *device_prvdeltas,
+                                  unsigned int input_size,
+                                  unsigned int weight_offset);
 
-__global__ void tile_propagate_layer(float *device_input, float *device_weights,
-                                     float *device_wbias, float *device_output,
-                                     unsigned int input_size,
-                                     unsigned int neuron_size,
-                                     unsigned int input_offset,
-                                     unsigned int neuron_offset);
+__global__ void tile_propagate_layer(
+    float *device_input, float *device_weights, float *device_wbias,
+    float *device_output, unsigned int input_size, unsigned int neuron_size,
+    unsigned int input_offset, unsigned int neuron_offset,
+    unsigned int weight_offset);
+
 __global__ void tile_outlayer_train(float *device_wbias, float *device_output,
                                     float *device_awaited_output,
                                     unsigned int neuron_offset, float momentum,
                                     float *device_delta);
-__global__ void tile_layer_train(float* device_weights,float *device_wbias,
-                                         float *device_output,
-                                         float *device_awaited_output,
-                                         unsigned int neuron_offset,
-                                         float learning_rate, float *device_delta,
-                                         unsigned int layer_offset, unsigned int input_size);
+__global__ void
+tile_layer_train(float *device_weights, float *device_wbias,
+                 float *device_output, float *device_awaited_output,
+                 unsigned int neuron_offset, float learning_rate,
+                 float *device_delta, unsigned int layer_offset,
+                 unsigned int input_size, unsigned int weight_offset, unsigned int weight_layer_offset);
 }
 
 struct GPUNetwork {
@@ -58,8 +60,9 @@ struct GPUNetwork {
   int count_layers;
   int *num_blocks;
   int *threads_per_block;
-  unsigned int *input_size;
-  unsigned int *neuron_size;
+  unsigned int *arr_input_size;
+  unsigned int *arr_neuron_size;
+  unsigned int *sum_weight_size;
   unsigned int *sum_input_size;
   unsigned int *sum_neuron_size;
 
