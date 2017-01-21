@@ -29,29 +29,32 @@ inline void gpuAssert(cudaError_t code, const char *file,
 namespace Device {
 
 __global__ void tile_update_layer(float *device_input, float *device_weights,
+                                  float *device_delta, float *device_prvdeltas,
+                                  float learning_rate, float momentum,
                                   unsigned int input_offset,
                                   unsigned int neuron_offset,
-                                  float learning_rate, float momentum,
-                                  float *device_delta, float *device_prvdeltas,
                                   unsigned int input_size,
                                   unsigned int weight_offset);
 
-__global__ void tile_propagate_layer(
-    float *device_input, float *device_weights, float *device_wbias,
-    float *device_output, unsigned int input_size, unsigned int neuron_size,
-    unsigned int input_offset, unsigned int neuron_offset,
-    unsigned int weight_offset);
+__global__ void
+tile_propagate_layer(float *device_input, float *device_weights,
+                     float *device_wbias, float *device_output,
+                     unsigned int input_size, unsigned int neuron_size,
+                     unsigned int input_offset, unsigned int neuron_offset,
+                     unsigned int nl_neuron_offset, unsigned int weight_offset);
 
-__global__ void tile_outlayer_train(float *device_wbias, float *device_output,
+__global__ void tile_outlayer_train(float *device_delta, float *device_wbias,
+                                    float *device_output,
                                     float *device_awaited_output,
-                                    unsigned int neuron_offset, float momentum,
-                                    float *device_delta);
+                                    float learning_rate,
+                                    unsigned int nl_neuron_offset);
 __global__ void
 tile_layer_train(float *device_weights, float *device_wbias,
-                 float *device_output, float *device_awaited_output,
-                 unsigned int neuron_offset, float learning_rate,
-                 float *device_delta, unsigned int layer_offset,
-                 unsigned int input_size, unsigned int weight_offset, unsigned int weight_layer_offset);
+                 float *device_delta, float *device_output,
+                 float *device_awaited_output, float learning_rate,
+                 unsigned int pl_neuron_size, unsigned int pl_input_size,
+                 unsigned int tl_weight_offset, unsigned int tl_neuron_offset,
+                 unsigned int nl_neuron_offset);
 }
 
 struct GPUNetwork {

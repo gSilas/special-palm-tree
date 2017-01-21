@@ -231,23 +231,14 @@ void test(GPUNetwork *net) {
     float outf = 0;
 
     for (int i = 0; i < 10; i++) {
-      outf += out[i];
-    } /*net->layers[1]->neurons[0].output +
-                            net->layers[1]->neurons[1].output +
-                            net->layers[1]->neurons[2].output +
-                            net->layers[1]->neurons[3].output +
-                            net->layers[1]->neurons[4].output +
-                            net->layers[1]->neurons[5].output +
-                            net->layers[1]->neurons[6].output +
-                            net->layers[1]->neurons[7].output +
-                            net->layers[1]->neurons[8].output +
-                            net->layers[1]->neurons[9].output);
-  */
+      outf += out[i + 600];
+    }
+
     if (std::round(outf) == labelvec[i])
       success++;
 
     std::cout << "TESTED PATTERN " << i << " DESIRED OUTPUT: " << labelvec[i]
-              << " NET RESULT: " << out << std::endl;
+              << " NET RESULT: " << outf << std::endl;
   }
   std::cout << "SUCCESS " << success << std::endl;
 }
@@ -294,7 +285,8 @@ int main(int /*argc*/, char const ** /*argv*/) {
       std::cout << "TESTED PATTERN " << i << " DESIRED OUTPUT: " <<
     *desiredout[i]
                 << " NET RESULT: "
-                << std::round(net->layers[1]->neurons[0]->output) << std::endl;
+                << std::round(net->layers[1]->neurons[0]->output) <<
+    std::endl;
     }
     return 0;*/
 
