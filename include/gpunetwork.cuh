@@ -36,6 +36,11 @@ __global__ void tile_update_layer(float *device_input, float *device_weights,
                                   unsigned int input_size,
                                   unsigned int weight_offset);
 
+__global__ void tile_propagate_inlayer(
+    float *device_dataset, float *device_input, float *device_weights,
+    float *device_wbias, float *device_output, unsigned int input_size,
+    unsigned int neuron_size, unsigned int nl_neuron_offset);
+
 __global__ void
 tile_propagate_layer(float *device_input, float *device_weights,
                      float *device_wbias, float *device_output,
@@ -71,6 +76,7 @@ struct GPUNetwork {
 
   // device_land
   float *device_input;
+  float *device_awaited_output;
 
   float *device_weights;
   float *device_wbias;
@@ -79,13 +85,21 @@ struct GPUNetwork {
   float *device_prvdeltas;
   float *device_output;
 
+  float *device_dataset;
+  float *test_device_dataset;
+  float *device_labels;
+
   void init_network(unsigned int *inputs, unsigned int *neurons,
                     unsigned int clayers);
 
-  void propagate_network(const float *input);
+  unsigned int propagate_network(float *data_set, float *label_set,
+                                 unsigned int dataset_count, size_t set_size,
+                                 size_t label_size);
 
-  float train_network(const float *input, const float *awaited_output,
-                      const float learning_rate, float momentum);
+  void train_network(float *data_set, size_t set_size, float *data_labels,
+                     size_t label_size, unsigned int dataset_count,
+                     unsigned int epochs, const float learning_rate,
+                     float momentum);
 
   ~GPUNetwork();
 
