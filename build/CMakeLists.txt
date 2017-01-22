@@ -22,6 +22,7 @@ set(SOURCE
 set(CUDA_SOURCE
    ${SOURCE}
    ${SRC_DIR}/gpunetwork.cu
+   ${SRC_DIR}/device.cu
 )
 
 set(INCLUDE_DIRS
