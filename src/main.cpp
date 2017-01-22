@@ -33,7 +33,7 @@ void read_Mnist(std::string filename, std::vector<float> &vec) {
     n_rows = ReverseInt(n_rows);
     file.read((char *)&n_cols, sizeof(n_cols));
     n_cols = ReverseInt(n_cols);
-    for (int i = 0; i < 1 /*number_of_images*/; ++i) {
+    for (int i = 0; i < number_of_images; ++i) {
       for (int r = 0; r < n_rows; ++r) {
         for (int c = 0; c < n_cols; ++c) {
           unsigned char temp = 0;
@@ -58,7 +58,7 @@ void read_Mnist_Label(std::string filename, std::vector<float> &vec) {
     magic_number = ReverseInt(magic_number);
     file.read((char *)&number_of_images, sizeof(number_of_images));
     number_of_images = ReverseInt(number_of_images);
-    for (int i = 0; i < 1 /*number_of_images*/; ++i) {
+    for (int i = 0; i < number_of_images; ++i) {
       unsigned char temp = 0;
       file.read((char *)&temp, sizeof(temp));
       for (int j = 0; j < 10; j++) {
@@ -76,7 +76,7 @@ void train(GPUNetwork *net, int epochs, float learning_rate, float momentum) {
   std::cout << "TRAINING " << std::endl;
   std::string imagefilename = "mnist/train-images-idx3-ubyte/data";
   std::string labelfilename = "mnist/train-labels-idx1-ubyte/data";
-  int number_of_images = 1; // 60000;
+  int number_of_images = 60000;
 
   // read MNIST iamge into float vector
   std::vector<float> imagevec;
@@ -100,7 +100,7 @@ void test(GPUNetwork *net) {
   std::cout << "TESTING" << std::endl;
   std::string imagefilename = "mnist/t10k-images-idx3-ubyte/data";
   std::string labelfilename = "mnist/t10k-labels-idx1-ubyte/data";
-  int number_of_images = 1;
+  int number_of_images = 10000;
 
   // read MNIST iamge into float vector
   std::vector<float> imagevec;
@@ -133,7 +133,7 @@ int main(int /*argc*/, char const ** /*argv*/) {
   // CPU 26m49s SUCCESS 9398
   // SUCCESS 9369
 
-  train(net, 10, learning_rate, momentum);
+  train(net, 1, learning_rate, momentum);
   test(net);
 
   delete net;
