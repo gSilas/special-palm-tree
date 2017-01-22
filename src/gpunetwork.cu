@@ -75,7 +75,7 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
 
   std::cout << "cudaMemset" << std::endl;
 
-  checkErrorsCuda(cudaMemset(device_input, 0, sizeof(float) * input_size));
+  checkErrorsCuda(cudaMemset(device_input, 0, sizeof(float) * (input_size + arr_neuron_size[count_layers - 1])));
 
   checkErrorsCuda(cudaMemset(device_wbias, 1, sizeof(float) * neuron_size));
   checkErrorsCuda(cudaMemset(device_delta, 0, sizeof(float) * neuron_size));
@@ -191,7 +191,7 @@ void GPUNetwork::train_network(float *data_set, size_t set_size,
                                        threads_per_block[l - 1]>>>(
             device_input, device_weights, device_wbias, arr_input_size[l - 1],
             arr_neuron_size[l - 1], sum_input_size[l - 1],
-            sum_neuron_size[l - 1], sum_neuron_size[l], sum_weight_size[l - 1]);
+            sum_neuron_size[l - 1], sum_neuron_size[l]+arr_input_size[0], sum_weight_size[l - 1]);
 
         // checkErrorsCuda(cudaDeviceSynchronize());
         /*std::cout << l << " | " << num_blocks[l] << " | " <<
@@ -275,7 +275,9 @@ float *GPUNetwork::getOutput() {
   for (int i = 0; i < sum_weight_size[count_layers]; i++) {
     std::cout << "w " << i << " " << wout[i] << std::endl;
   }
-
+  delete iout;
+  delete wout;
+  delete dout;
   checkErrorsCuda(cudaMemcpy(out,device_input+sum_input_size[count_layers], arr_neuron_size[count_layers-1] * sizeof(float),
                              cudaMemcpyDeviceToHost));
 

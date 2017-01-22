@@ -89,7 +89,7 @@ __global__ void Device::tile_outlayer_train(float *device_input,
   // int tid_y = blockIdx.y*blockDim.y+threadIdx.y;
   unsigned int index = nl_neuron_offset + tid_x;
   float out;
-  printf("threadIdx: %d neuron_offset: %d\n", tid_x, nl_neuron_offset);
+  //printf("threadIdx: %d neuron_offset: %d\n", tid_x, nl_neuron_offset);
   out = device_input[index];
   float delta = (device_awaited_output[tid_x] - out) * out * (1 - out);
   device_delta[index] = delta;
