@@ -17,21 +17,17 @@ struct GPUNetwork {
   int count_layers;
   int *num_blocks;
   int *threads_per_block;
-  unsigned int *arr_input_size;
-  unsigned int *arr_neuron_size;
-  unsigned int *sum_weight_size;
-  unsigned int *sum_input_size;
-  unsigned int *sum_neuron_size;
 
   // device_land
-  float *device_input;
+  float **device_inputs;
+  float *device_output;
   float *device_awaited_output;
 
-  float *device_weights;
-  float *device_wbias;
+  float **device_weights;
+  float **device_wbias;
 
-  float *device_delta;
-  float *device_prvdeltas;
+  float **device_delta;
+  float **device_prvdeltas;
 
   float *device_dataset;
   float *test_device_dataset;

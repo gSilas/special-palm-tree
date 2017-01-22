@@ -133,7 +133,7 @@ int main(int /*argc*/, char const ** /*argv*/) {
   // CPU 26m49s SUCCESS 9398
   // SUCCESS 9369
 
-  train(net, 1, learning_rate, momentum);
+  train(net, 10, learning_rate, momentum);
   test(net);
 
   delete net;
