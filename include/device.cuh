@@ -12,6 +12,10 @@
 
 namespace Device {
 
+__global__ void set_layer_memory(float *device_delta, float *device_prvdeltas,
+                                 unsigned int input_size,
+                                 unsigned int neuron_size);
+
 __global__ void tile_update_layer(float *device_input, float *device_weights,
                                   float *device_delta, float *device_prvdeltas,
                                   float learning_rate, float momentum,
@@ -34,15 +38,17 @@ __global__ void tile_propagate_layer(float *device_input,
 __global__ void tile_outlayer_train(float *device_output, float *device_delta,
                                     float *device_wbias,
                                     float *device_awaited_output,
-                                    float learning_rate);
+                                    float learning_rate,
+                                    unsigned int input_size,
+                                    unsigned int neuron_size);
 
-__global__ void tile_layer_train(float *device_output, float *pl_device_weights,
-                                 float *pl_device_delta, float *device_wbias,
-                                 float *device_delta,
-                                 float *device_awaited_output,
-                                 float learning_rate,
-                                 unsigned int pl_input_size,
-                                 unsigned int pl_neuron_size);
+__global__ void
+tile_layer_train(float *device_output, float *pl_device_weights,
+                 float *pl_device_delta, float *device_wbias,
+                 float *device_delta, float *device_awaited_output,
+                 float learning_rate, unsigned int pl_input_size,
+                 unsigned int pl_neuron_size, unsigned int input_size,
+                 unsigned int neuron_size);
 }
 
 #endif
