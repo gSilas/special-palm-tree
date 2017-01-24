@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include <cuda.h>
+#include <cuda_profiler_api.h>
 #include <cuda_runtime.h>
 
 #include "cuda_util.h"
@@ -14,9 +15,15 @@
 struct GPUNetwork {
 
   // connection_land
-  int count_layers;
+  unsigned int count_layers;
+  
   int *num_blocks;
   int *threads_per_block;
+  int *mul_num_blocks;
+  int *mul_threads_per_block;
+
+  int *neuron_size;
+  int *input_size;
 
   // device_land
   float **device_inputs;

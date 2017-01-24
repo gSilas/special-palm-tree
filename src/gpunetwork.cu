@@ -7,6 +7,20 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
   num_blocks = new int[clayers];
   threads_per_block = new int[clayers];
 
+  mul_num_blocks = new int[clayers];
+  mul_threads_per_block = new int[clayers];
+
+  neuron_size = new int[clayers];
+  input_size = new int[clayers];
+
+  std::memcpy(neuron_size, neurons, sizeof(int) * clayers);
+  std::memcpy(input_size, inputs, sizeof(int) * clayers);
+
+  for (unsigned int i = 0; i < clayers; i++) {
+    std::cout << "Neuron_Size " << i << " " << neuron_size[i] << std::endl;
+    std::cout << "Input_Size " << i << " " << input_size[i] << std::endl;
+  }
+
   cudaDeviceProp device_props;
   checkErrorsCuda(cudaGetDeviceProperties(&device_props, 0));
   for (unsigned int l = 0; l < clayers; l++) {
@@ -17,12 +31,26 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
 
     num_blocks[l] = (int)(neurons[l] / threads_per_block[l]);
 
-    if (num_blocks[l] == 0)
+    if (num_blocks[l] == 0) {
       num_blocks[l]++;
-    else if (0 != neurons[l] % num_blocks[l])
+    } else if (0 != neurons[l] % num_blocks[l]) {
       num_blocks[l]++;
+    }
+    if (neurons[l] * inputs[l] > (unsigned int)device_props.maxThreadsPerBlock)
+      mul_threads_per_block[l] = device_props.maxThreadsPerBlock;
+    else
+      mul_threads_per_block[l] = neurons[l] * inputs[l];
 
-    //std::cout << "num_blocks = " << num_blocks[l] << std::endl;
+    mul_num_blocks[l] =
+        (int)(neurons[l] * inputs[l] / mul_threads_per_block[l]);
+
+    if (mul_num_blocks[l] == 0) {
+      mul_num_blocks[l]++;
+    } else if (0 != neurons[l] * inputs[l] % mul_num_blocks[l]) {
+      mul_num_blocks[l]++;
+    }
+
+    // std::cout << "num_blocks = " << num_blocks[l] << std::endl;
   }
   device_inputs = new float *[clayers];
 
@@ -35,7 +63,7 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
   checkErrorsCuda(cudaMalloc((void **)&device_output,
                              sizeof(float) * neurons[count_layers - 1]));
 
-  for (int i = 0; i < clayers; i++) {
+  for (unsigned int i = 0; i < clayers; i++) {
     checkErrorsCuda(
         cudaMalloc((void **)&device_inputs[i], sizeof(float) * inputs[i]));
     checkErrorsCuda(
@@ -89,15 +117,30 @@ unsigned int GPUNetwork::propagate_network(float *data_set, float *label_set,
 
   for (unsigned int i = 0; i < dataset_count; i++) {
 
+    Device::set_dataset<<<1, (set_size / dataset_count)>>>(
+        device_inputs[0],
+        test_device_dataset + (i * (set_size / dataset_count)), input_size[0]);
+    // checkErrorsCuda(cudaDeviceSynchronize());
+
     Device::tile_propagate_inlayer<<<num_blocks[0], threads_per_block[0]>>>(
-        test_device_dataset + (i * (set_size / dataset_count)),
         device_inputs[0], device_inputs[1], device_weights[0], device_wbias[0],
-        784, 300);
-    checkErrorsCuda(cudaDeviceSynchronize());
-    Device::tile_propagate_layer<<<num_blocks[1], threads_per_block[1]>>>(
-        device_inputs[1], device_output, device_weights[1], device_wbias[1],
-        300, 10);
-    checkErrorsCuda(cudaDeviceSynchronize());
+        input_size[0], neuron_size[0]);
+    // checkErrorsCuda(cudaDeviceSynchronize());
+
+    for (unsigned int l = 1; l < count_layers; l++) {
+      if (l >= count_layers - 1) {
+        // std::cout << "l115 " << l << std::endl;
+        Device::tile_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
+            device_inputs[l], device_output, device_weights[l], device_wbias[l],
+            input_size[l], neuron_size[l]);
+      } else {
+        // std::cout << "l121 " << l << std::endl;
+        Device::tile_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
+            device_inputs[l], device_inputs[l + 1], device_weights[l],
+            device_wbias[l], input_size[l], neuron_size[l]);
+      }
+      // checkErrorsCuda(cudaDeviceSynchronize());
+    }
 
     float *out;
     out = getOutput();
@@ -143,76 +186,74 @@ void GPUNetwork::train_network(float *data_set, size_t set_size,
   checkErrorsCuda(cudaMemcpy(device_labels, data_labels,
                              sizeof(float) * label_size,
                              cudaMemcpyHostToDevice));
+  cudaProfilerStart();
   for (unsigned int e = 0; e < epochs; e++) {
 
     std::cout << "Epoch " << e + 1 << "/" << epochs << std::endl;
+
     for (unsigned int i = 0; i < dataset_count; i++) {
 
       device_awaited_output = device_labels + i * (label_size / dataset_count);
 
+      Device::set_dataset<<<1, (set_size / dataset_count)>>>(
+          device_inputs[0], device_dataset + (i * (set_size / dataset_count)),
+          input_size[0]);
+
+      // checkErrorsCuda(cudaDeviceSynchronize());
+
       Device::tile_propagate_inlayer<<<num_blocks[0], threads_per_block[0]>>>(
-          device_dataset + (i * (set_size / dataset_count)), device_inputs[0],
-          device_inputs[1], device_weights[0], device_wbias[0], 784, 300);
-      checkErrorsCuda(cudaDeviceSynchronize());
-      Device::tile_propagate_layer<<<num_blocks[1], threads_per_block[1]>>>(
-          device_inputs[1], device_output, device_weights[1], device_wbias[1],
-          300, 10);
-      checkErrorsCuda(cudaDeviceSynchronize());
+          device_inputs[0], device_inputs[1], device_weights[0],
+          device_wbias[0], input_size[0], neuron_size[0]);
+      // checkErrorsCuda(cudaDeviceSynchronize());
 
-      Device::tile_outlayer_train<<<num_blocks[1], threads_per_block[1]>>>(
-          device_output, device_delta[1], device_wbias[1],
-          device_awaited_output, learning_rate, 300, 10);
-      checkErrorsCuda(cudaDeviceSynchronize());
-      Device::tile_layer_train<<<num_blocks[0], threads_per_block[0]>>>(
-          device_inputs[1], device_weights[1], device_delta[1], device_wbias[0],
-          device_delta[0], device_awaited_output, learning_rate, 300, 10, 784,
-          300);
-      checkErrorsCuda(cudaDeviceSynchronize());
+      for (unsigned int l = 1; l < count_layers; l++) {
+        if (l >= count_layers - 1) {
+          // std::cout << "l194 " << l << std::endl;
+          Device::tile_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
+              device_inputs[l], device_output, device_weights[l],
+              device_wbias[l], input_size[l], neuron_size[l]);
+        } else {
+          // std::cout << "l199 " << l << std::endl;
+          Device::tile_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
+              device_inputs[l], device_inputs[l + 1], device_weights[l],
+              device_wbias[l], input_size[l], neuron_size[l]);
+        }
+        // checkErrorsCuda(cudaDeviceSynchronize());
+      }
 
-      Device::tile_update_layer<<<num_blocks[0], threads_per_block[0]>>>(
-          device_inputs[0], device_weights[0], device_delta[0],
-          device_prvdeltas[0], learning_rate, momentum, 784, 300);
-      checkErrorsCuda(cudaDeviceSynchronize());
-      Device::tile_update_layer<<<num_blocks[1], threads_per_block[1]>>>(
-          device_inputs[1], device_weights[1], device_delta[1],
-          device_prvdeltas[1], learning_rate, momentum, 300, 10);
-      checkErrorsCuda(cudaDeviceSynchronize());
+      Device::tile_outlayer_train<<<num_blocks[count_layers - 1],
+                                    threads_per_block[count_layers - 1]>>>(
+          device_output, device_delta[count_layers - 1],
+          device_wbias[count_layers - 1], device_awaited_output, learning_rate,
+          input_size[count_layers - 1], neuron_size[count_layers - 1]);
+      // checkErrorsCuda(cudaDeviceSynchronize());
+
+      for (int l = (int)count_layers - 2; l > -1; l--) {
+        // std::cout << "l215 " << l << std::endl;
+        Device::tile_layer_train<<<num_blocks[l], threads_per_block[l]>>>(
+            device_inputs[l + 1], device_weights[l + 1], device_delta[l + 1],
+            device_wbias[l], device_delta[l], device_awaited_output,
+            learning_rate, input_size[l + 1], neuron_size[l + 1], input_size[l],
+            neuron_size[l]);
+        // checkErrorsCuda(cudaDeviceSynchronize());
+      }
+
+      for (unsigned int l = 0; l < count_layers; l++) {
+        // std::cout << "l225 " << l << std::endl;
+        Device::
+            tile_update_layer<<<mul_num_blocks[l], mul_threads_per_block[l]>>>(
+                device_inputs[l], device_weights[l], device_delta[l],
+                device_prvdeltas[l], learning_rate, momentum, input_size[l],
+                neuron_size[l]);
+        // checkErrorsCuda(cudaDeviceSynchronize());
+      }
     }
   }
+  cudaProfilerStop();
 }
 
 float *GPUNetwork::getOutput() {
-  // float *out = new float[sum_neuron_size[count_layers]];
-  /*float *iout = new float[sum_input_size[count_layers] +
-                          arr_neuron_size[count_layers - 1]];
-  float *wout = new float[sum_weight_size[count_layers]];
-  float *dout = new float[sum_neuron_size[count_layers]];
 
-  checkErrorsCuda(cudaMemcpy(dout, device_delta,
-                             sizeof(float) * sum_neuron_size[count_layers],
-                             cudaMemcpyDeviceToHost));
-  checkErrorsCuda(cudaMemcpy(iout, device_input,
-                             sizeof(float) * sum_input_size[count_layers] +
-                                 arr_neuron_size[count_layers - 1],
-                             cudaMemcpyDeviceToHost));
-  checkErrorsCuda(cudaMemcpy(wout, device_weights,
-                             sizeof(float) * sum_weight_size[count_layers],
-                             cudaMemcpyDeviceToHost));
-  for (int i = 0; i < sum_neuron_size[count_layers]; i++) {
-    std::cout << "d " << i << " " << dout[i] << std::endl;
-  }
-
-  for (int i = 0;
-       i < sum_input_size[count_layers] + arr_neuron_size[count_layers - 1];
-       i++) {
-    std::cout << "i " << i << " " << iout[i] << std::endl;
-  }
-  for (int i = 0; i < sum_weight_size[count_layers]; i++) {
-    std::cout << "w " << i << " " << wout[i] << std::endl;
-  }
-  delete iout;
-  delete wout;
-  delete dout;*/
   float *iout = new float[10];
   checkErrorsCuda(cudaMemcpy(iout, device_output, sizeof(float) * 10,
                              cudaMemcpyDeviceToHost));
@@ -223,25 +264,22 @@ float *GPUNetwork::getOutput() {
 }
 
 GPUNetwork::~GPUNetwork() {
-  /*  delete num_blocks;cuMemsetD32
-    delete threads_per_block;
-    delete arr_input_size;
-    delete arr_neuron_size;
-    delete sum_input_size;
-    delete sum_neuron_size;
-    delete sum_weight_size;
+  delete num_blocks;
+  delete threads_per_block;
+  delete neuron_size;
+  delete input_size;
 
-    // device_land
-    checkErrorsCuda(cudaFree(device_input));
+  // device_land
+  for (unsigned int i = 0; i < count_layers; i++) {
+    checkErrorsCuda(cudaFree(device_inputs[i]));
+    checkErrorsCuda(cudaFree(device_weights[i]));
+    checkErrorsCuda(cudaFree(device_wbias[i]));
+    checkErrorsCuda(cudaFree(device_delta[i]));
+    checkErrorsCuda(cudaFree(device_prvdeltas[i]));
+  }
 
-    checkErrorsCuda(cudaFree(device_weights));
-    checkErrorsCuda(cudaFree(device_wbias));
-
-    checkErrorsCuda(cudaFree(device_delta));
-    checkErrorsCuda(cudaFree(device_prvdeltas));
-
-    checkErrorsCuda(cudaFree(device_dataset));
-    checkErrorsCuda(cudaFree(device_labels));
-
-    checkErrorsCuda(cudaFree(test_device_dataset)); */
+  checkErrorsCuda(cudaFree(device_output));
+  checkErrorsCuda(cudaFree(device_dataset));
+  checkErrorsCuda(cudaFree(test_device_dataset));
+  checkErrorsCuda(cudaFree(device_labels));
 }

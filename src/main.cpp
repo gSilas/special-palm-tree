@@ -126,7 +126,8 @@ void test(GPUNetwork *net) {
 
   std::cout << "Successfully Recognized:  " << success << "  Images"
             << std::endl;
-  std::cout << "Accuracy:  " << success / number_of_images << std::endl;
+  std::cout << "Accuracy:  " << (float)success / (float)number_of_images
+            << std::endl;
 }
 
 int main(int /*argc*/, char const ** /*argv*/) {

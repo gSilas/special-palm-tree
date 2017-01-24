@@ -11,6 +11,8 @@
 #include "cuda_util.h"
 
 namespace Device {
+__global__ void set_dataset(float *device_input, float *data_set,
+                            unsigned int input_size);
 
 __global__ void set_layer_memory(float *device_delta, float *device_prvdeltas,
                                  unsigned int input_size,
@@ -22,12 +24,10 @@ __global__ void tile_update_layer(float *device_input, float *device_weights,
                                   unsigned int input_size,
                                   unsigned int neuron_size);
 
-__global__ void tile_propagate_inlayer(float *data_set, float *device_input,
-                                       float *nl_device_input,
-                                       float *device_weights,
-                                       float *device_wbias,
-                                       unsigned int input_size,
-                                       unsigned int neuron_size);
+__global__ void
+tile_propagate_inlayer(float *device_input, float *nl_device_input,
+                       float *device_weights, float *device_wbias,
+                       unsigned int input_size, unsigned int neuron_size);
 
 __global__ void tile_propagate_layer(float *device_input,
                                      float *nl_device_input,

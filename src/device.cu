@@ -1,5 +1,16 @@
 #include "device.cuh"
 
+__global__ void Device::set_dataset(float *device_input, float *data_set,
+                                    unsigned int input_size) {
+  unsigned int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (tid_x < input_size) {
+
+    device_input[tid_x] = data_set[tid_x];
+    // printf("threadIdx %d set %f\n", tid_x, data_set[tid_x]);
+  }
+}
+
 __global__ void Device::set_layer_memory(float *device_delta,
                                          float *device_prvdeltas,
                                          unsigned int input_size,
@@ -25,26 +36,22 @@ Device::tile_update_layer(float *device_input, float *device_weights,
                           unsigned int input_size, unsigned int neuron_size) {
 
   unsigned int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid_x < neuron_size) {
+  if (tid_x < neuron_size*input_size) {
 
     float dw;
-    unsigned int index = tid_x * input_size;
 
-    for (unsigned int j = 0; j < input_size; j++) {
+    dw = learning_rate * device_input[tid_x % input_size] *
+         device_delta[(int)floorf((float)tid_x / (float)input_size)];
 
-      dw = learning_rate * device_input[j] * device_delta[tid_x];
-      dw += momentum * device_prvdeltas[j + index];
+    dw += momentum * device_prvdeltas[tid_x];
 
-      device_prvdeltas[j + index] = dw;
-      device_weights[j + index] += dw;
-    }
+    device_prvdeltas[tid_x] = dw;
+    device_weights[tid_x] += dw;
   }
 }
-__global__ void
-Device::tile_propagate_inlayer(float *data_set, float *device_input,
-                               float *nl_device_input, float *device_weights,
-                               float *device_wbias, unsigned int input_size,
-                               unsigned int neuron_size) {
+__global__ void Device::tile_propagate_inlayer(
+    float *device_input, float *nl_device_input, float *device_weights,
+    float *device_wbias, unsigned int input_size, unsigned int neuron_size) {
 
   unsigned int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid_x < neuron_size) {
@@ -53,7 +60,6 @@ Device::tile_propagate_inlayer(float *data_set, float *device_input,
     unsigned int index = tid_x * input_size;
 
     for (unsigned int j = 0; j < input_size; j++) {
-      device_input[j] = data_set[j];
       output += device_weights[j + index] * device_input[j];
     }
 
