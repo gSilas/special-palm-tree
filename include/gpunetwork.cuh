@@ -16,7 +16,7 @@ struct GPUNetwork {
 
   // connection_land
   unsigned int count_layers;
-  
+
   int *num_blocks;
   int *threads_per_block;
   int *mul_num_blocks;
@@ -35,6 +35,8 @@ struct GPUNetwork {
 
   float **device_delta;
   float **device_prvdeltas;
+
+  float **device_delta_summands;
 
   float *device_dataset;
   float *test_device_dataset;

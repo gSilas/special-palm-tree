@@ -36,7 +36,7 @@ Device::tile_update_layer(float *device_input, float *device_weights,
                           unsigned int input_size, unsigned int neuron_size) {
 
   unsigned int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid_x < neuron_size*input_size) {
+  if (tid_x < neuron_size * input_size) {
 
     float dw;
 
@@ -108,26 +108,81 @@ Device::tile_outlayer_train(float *device_output, float *device_delta,
     device_wbias[tid_x] += learning_rate * delta;
   }
 }
+__global__ void Device::reduction(float *data, unsigned int size) {
 
-__global__ void
-Device::tile_layer_train(float *device_output, float *pl_device_weights,
-                         float *pl_device_delta, float *device_wbias,
-                         float *device_delta, float *device_awaited_output,
-                         float learning_rate, unsigned int pl_input_size,
-                         unsigned int pl_neuron_size, unsigned int input_size,
-                         unsigned int neuron_size) {
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+if(tid < size){
+  __shared__ float sdata[2048];
+  sdata[threadIdx.x] = data[tid] + data[tid + gridDim.x * blockDim.x];
+  __syncthreads();
+  printf("%f\n",data[tid]);
+
+  unsigned int stride = blockDim.x;
+
+  while (stride > 32) {
+    if (threadIdx.x < stride) {
+      sdata[threadIdx.x] += sdata[threadIdx.x + stride];
+    }
+    stride /= 2;
+    __syncthreads();
+  }
+
+  if (threadIdx.x < 32) {
+    sdata[threadIdx.x] += sdata[threadIdx.x + 32];
+  }
+  if (threadIdx.x < 16) {
+    sdata[threadIdx.x] += sdata[threadIdx.x + 16];
+  }
+  if (threadIdx.x < 8) {
+    sdata[threadIdx.x] += sdata[threadIdx.x + 8];
+  }
+  if (threadIdx.x < 4) {
+    sdata[threadIdx.x] += sdata[threadIdx.x + 4];
+  }
+  if (threadIdx.x < 2) {
+    sdata[threadIdx.x] += sdata[threadIdx.x + 2];
+  }
+  if (threadIdx.x < 1) {
+    sdata[threadIdx.x] += sdata[threadIdx.x + 1];
+  }
+
+  if (0 == threadIdx.x) {
+    data[blockIdx.x] = sdata[0];
+
+  }
+}
+}
+__global__ void Device::tile_layer_delta(float *device_delta_summands,
+                                         float *pl_device_weights,
+                                         float *pl_device_delta,
+                                         unsigned int input_size,
+                                         unsigned int neuron_size) {
+  unsigned int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid_x < neuron_size * input_size) {
+    device_delta_summands[tid_x] =
+        pl_device_weights[tid_x] *
+        pl_device_delta[(int)floorf((float)tid_x / (float)input_size)];
+  }
+}
+
+__global__ void Device::tile_layer_train(
+    float *device_output, float *device_delta_summands, float *device_wbias,
+    float *device_delta, float *device_awaited_output, float learning_rate,
+    unsigned int pl_input_size, unsigned int pl_neuron_size,
+    unsigned int input_size, unsigned int neuron_size) {
 
   unsigned int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid_x < neuron_size) {
 
     float out;
-    float delta = 0;
+    /*float delta = 0;
 
     for (unsigned int i = 0; i < pl_neuron_size; i++) {
       for (unsigned int j = 0; j < pl_input_size; j++) {
         delta += pl_device_weights[i * pl_input_size + j] * pl_device_delta[i];
       }
-    }
+    }*/
+    float delta = device_delta_summands[0];
 
     out = device_output[tid_x];
 

@@ -60,6 +60,8 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
   device_delta = new float *[clayers];
   device_prvdeltas = new float *[clayers];
 
+  device_delta_summands = new float *[clayers];
+
   checkErrorsCuda(cudaMalloc((void **)&device_output,
                              sizeof(float) * neurons[count_layers - 1]));
 
@@ -74,6 +76,8 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
     checkErrorsCuda(cudaMalloc((void **)&device_weights[i],
                                sizeof(float) * inputs[i] * neurons[i]));
     checkErrorsCuda(cudaMalloc((void **)&device_prvdeltas[i],
+                               sizeof(float) * inputs[i] * neurons[i]));
+    checkErrorsCuda(cudaMalloc((void **)&device_delta_summands[i],
                                sizeof(float) * inputs[i] * neurons[i]));
 
     Device::set_layer_memory<<<num_blocks[i], threads_per_block[i]>>>(
@@ -230,12 +234,20 @@ void GPUNetwork::train_network(float *data_set, size_t set_size,
 
       for (int l = (int)count_layers - 2; l > -1; l--) {
         // std::cout << "l215 " << l << std::endl;
+        Device::
+            tile_layer_delta<<<mul_num_blocks[l+1], mul_threads_per_block[l+1]>>>(
+                device_delta_summands[l], device_weights[l + 1],
+                device_delta[l + 1], input_size[l], neuron_size[l]);
+
+        Device::reduction<<<mul_num_blocks[l], mul_threads_per_block[l]>>>(
+            device_delta_summands[l], input_size[l] * neuron_size[l]);
+
         Device::tile_layer_train<<<num_blocks[l], threads_per_block[l]>>>(
-            device_inputs[l + 1], device_weights[l + 1], device_delta[l + 1],
-            device_wbias[l], device_delta[l], device_awaited_output,
-            learning_rate, input_size[l + 1], neuron_size[l + 1], input_size[l],
+            device_inputs[l + 1], device_delta_summands[l], device_wbias[l],
+            device_delta[l], device_awaited_output, learning_rate,
+            input_size[l + 1], neuron_size[l + 1], input_size[l],
             neuron_size[l]);
-        // checkErrorsCuda(cudaDeviceSynchronize());
+         //checkErrorsCuda(cudaDeviceSynchronize());
       }
 
       for (unsigned int l = 0; l < count_layers; l++) {
@@ -275,6 +287,7 @@ GPUNetwork::~GPUNetwork() {
     checkErrorsCuda(cudaFree(device_weights[i]));
     checkErrorsCuda(cudaFree(device_wbias[i]));
     checkErrorsCuda(cudaFree(device_delta[i]));
+    checkErrorsCuda(cudaFree(device_delta_summands[i]));
     checkErrorsCuda(cudaFree(device_prvdeltas[i]));
   }
 
@@ -282,4 +295,11 @@ GPUNetwork::~GPUNetwork() {
   checkErrorsCuda(cudaFree(device_dataset));
   checkErrorsCuda(cudaFree(test_device_dataset));
   checkErrorsCuda(cudaFree(device_labels));
+
+  delete device_inputs;
+  delete device_weights;
+  delete device_wbias;
+  delete device_delta;
+  delete device_delta_summands;
+  delete device_prvdeltas;
 }
