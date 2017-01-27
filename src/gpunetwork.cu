@@ -165,7 +165,7 @@ unsigned int GPUNetwork::propagate_network(float *data_set, float *label_set,
     float outf = -1;
     float index = 0;
     float desired = 0;
-/*
+
     for (int j = 0; j < 10; j++) {
       if (out[j] > outf) {
         outf = out[j];
@@ -177,11 +177,11 @@ unsigned int GPUNetwork::propagate_network(float *data_set, float *label_set,
       if (label_set[j + i * (label_size / dataset_count)] == 1) {
         desired = j;
       }
-    } **/
+    } /*
  for (int j = 0; j < 10; j++) {
    index += out[j];
    desired += label_set[j + i * (label_size / dataset_count)];
- }
+ }*/
 
     if ((int)std::round(index) == desired) {
       success++;
