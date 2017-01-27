@@ -108,50 +108,47 @@ Device::tile_outlayer_train(float *device_output, float *device_delta,
     device_wbias[tid_x] += learning_rate * delta;
   }
 }
-__global__ void Device::reduction(float *data, unsigned int size) {
 
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-if(tid < size){
-  __shared__ float sdata[2048];
-  sdata[threadIdx.x] = data[tid] + data[tid + gridDim.x * blockDim.x];
-  __syncthreads();
-  printf("%f\n",data[tid]);
-
-  unsigned int stride = blockDim.x;
-
-  while (stride > 32) {
-    if (threadIdx.x < stride) {
-      sdata[threadIdx.x] += sdata[threadIdx.x + stride];
-    }
-    stride /= 2;
-    __syncthreads();
-  }
-
-  if (threadIdx.x < 32) {
-    sdata[threadIdx.x] += sdata[threadIdx.x + 32];
-  }
-  if (threadIdx.x < 16) {
-    sdata[threadIdx.x] += sdata[threadIdx.x + 16];
-  }
-  if (threadIdx.x < 8) {
-    sdata[threadIdx.x] += sdata[threadIdx.x + 8];
-  }
-  if (threadIdx.x < 4) {
-    sdata[threadIdx.x] += sdata[threadIdx.x + 4];
-  }
-  if (threadIdx.x < 2) {
-    sdata[threadIdx.x] += sdata[threadIdx.x + 2];
-  }
-  if (threadIdx.x < 1) {
-    sdata[threadIdx.x] += sdata[threadIdx.x + 1];
-  }
-
-  if (0 == threadIdx.x) {
-    data[blockIdx.x] = sdata[0];
-
-  }
+__inline__ __device__
+float warpReduceSum(float val) {
+  for (int offset = warpSize/2; offset > 0; offset /= 2)
+    val += __shfl_down(val, offset);
+  return val;
 }
+
+__inline__ __device__
+float blockReduceSum(float val) {
+
+  static __shared__ float shared[32]; // Shared mem for 32 partial sums
+  int lane = threadIdx.x % warpSize;
+  int wid = threadIdx.x / warpSize;
+
+  val = warpReduceSum(val);     // Each warp performs partial reduction
+
+  if (lane==0) shared[wid]=val; // Write reduced value to shared memory
+
+  __syncthreads();              // Wait for all partial reductions
+
+  //read from shared memory only if that warp existed
+  val = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : 0;
+
+  if (wid==0) val = warpReduceSum(val); //Final reduce within first warp
+
+  return val;
 }
+
+__global__ void Device::reduction(float *data, float* out_data, unsigned int size) {
+  float sum = 0;
+  // reduce multiple elements per thread
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < size;
+       i += blockDim.x * gridDim.x) {
+    sum += data[i];
+  }
+  sum = blockReduceSum(sum);
+  if (threadIdx.x == 0)
+    out_data[blockIdx.x] = sum;
+}
+
 __global__ void Device::tile_layer_delta(float *device_delta_summands,
                                          float *pl_device_weights,
                                          float *pl_device_delta,

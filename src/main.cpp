@@ -33,14 +33,14 @@ void read_Mnist(std::string filename, std::vector<float> &vec) {
     n_rows = ReverseInt(n_rows);
     file.read((char *)&n_cols, sizeof(n_cols));
     n_cols = ReverseInt(n_cols);
-    for (int i = 0; i < number_of_images; ++i) {
-      for (int r = 0; r < n_rows; ++r) {
-        for (int c = 0; c < n_cols; ++c) {
-          unsigned char temp = 0;
-          file.read((char *)&temp, sizeof(temp));
-          vec.push_back((float)(temp) / 255);
-        }
-      }
+    for (int i = 0; i < number_of_images * n_rows * n_cols; ++i) {
+      // for (int r = 0; r < n_rows; ++r) {
+      // for (int c = 0; c < n_cols; ++c) {
+      unsigned char temp = 0;
+      file.read((char *)&temp, sizeof(temp));
+      vec.push_back((float)(temp) / 255.f);
+      //}
+      //}
     }
   } else {
     std::cout << "MNIST pixel file not opened!" << std::endl;
@@ -63,17 +63,17 @@ void read_Mnist_Label(std::string filename, std::vector<float> &vec) {
     for (int i = 0; i < number_of_images; ++i) {
       unsigned char temp = 0;
       file.read((char *)&temp, sizeof(temp));
-      // std::cout << (int)temp << std::endl;
+      std::cout << (int)temp << std::endl;
       for (int j = 0; j < 10; j++) {
-        if ((int)temp != j) {
+        if ((int)temp <= j) {
           vec.push_back(0.f);
-          // std::cout << "0 ";
+          std::cout << "0 ";
         } else {
           vec.push_back(1.f);
-          // std::cout << "1 ";
+          std::cout << "1 ";
         }
       }
-      // std::cout << std::endl;
+      std::cout << std::endl;
     }
   } else {
     std::cout << "MNIST label file not opened!" << std::endl;
@@ -132,8 +132,8 @@ void test(GPUNetwork *net) {
 
 int main(int /*argc*/, char const ** /*argv*/) {
 
-  unsigned int inputs[] = {784, 1000, 300};
-  unsigned int neurons[] = {1000, 300, 10};
+  unsigned int inputs[] = {784, 784, 784};
+  unsigned int neurons[] = {784, 784, 10};
 
   GPUNetwork *net = new GPUNetwork;
   net->init_network(inputs, neurons, 3);
@@ -144,7 +144,7 @@ int main(int /*argc*/, char const ** /*argv*/) {
   // CPU 26m49s SUCCESS 9398
   // SUCCESS 9369
 
-  train(net, 6, learning_rate, momentum);
+  train(net, 5, learning_rate, momentum);
   test(net);
 
   delete net;

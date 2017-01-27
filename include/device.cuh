@@ -24,12 +24,13 @@ __global__ void tile_update_layer(float *device_input, float *device_weights,
                                   unsigned int input_size,
                                   unsigned int neuron_size);
 
+
 __global__ void
 tile_propagate_inlayer(float *device_input, float *nl_device_input,
                        float *device_weights, float *device_wbias,
                        unsigned int input_size, unsigned int neuron_size);
 
-__global__ void reduction(float *data, unsigned int size);
+__global__ void reduction(float *data, float* out_data, unsigned int size);
 
 __global__ void tile_layer_delta(float *device_delta_summands,
                                          float *pl_device_weights,

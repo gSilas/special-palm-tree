@@ -37,6 +37,7 @@ struct GPUNetwork {
   float **device_prvdeltas;
 
   float **device_delta_summands;
+  float **device_delta_summands_out;
 
   float *device_dataset;
   float *test_device_dataset;

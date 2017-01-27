@@ -61,6 +61,7 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
   device_prvdeltas = new float *[clayers];
 
   device_delta_summands = new float *[clayers];
+  device_delta_summands_out = new float *[clayers];
 
   checkErrorsCuda(cudaMalloc((void **)&device_output,
                              sizeof(float) * neurons[count_layers - 1]));
@@ -79,6 +80,8 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
                                sizeof(float) * inputs[i] * neurons[i]));
     checkErrorsCuda(cudaMalloc((void **)&device_delta_summands[i],
                                sizeof(float) * inputs[i] * neurons[i]));
+    checkErrorsCuda(cudaMalloc((void **)&device_delta_summands_out[i],
+                               sizeof(float) * inputs[i] * neurons[i]));
 
     Device::set_layer_memory<<<num_blocks[i], threads_per_block[i]>>>(
         device_delta[i], device_prvdeltas[i], inputs[i], neurons[i]);
@@ -88,8 +91,8 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
 
     for (unsigned int j = 0; j < inputs[i] * neurons[i]; j++) {
       weights[j] = -0.5 +
-                   static_cast<float>(rand()) /
-                       (static_cast<float>(RAND_MAX / (0.5 - (-0.5))));
+                    static_cast<float>(rand()) /
+                        (static_cast<float>(RAND_MAX / (0.5 - (-0.5))));
     }
     for (unsigned int j = 0; j < neurons[i]; j++) {
       wbias[j] = -0.5 +
@@ -112,6 +115,16 @@ unsigned int GPUNetwork::propagate_network(float *data_set, float *label_set,
                                            unsigned int dataset_count,
                                            size_t set_size, size_t label_size) {
   unsigned int success = 0;
+  unsigned int success0 = 0;
+  unsigned int success1 = 0;
+  unsigned int success2 = 0;
+  unsigned int success3 = 0;
+  unsigned int success4 = 0;
+  unsigned int success5 = 0;
+  unsigned int success6 = 0;
+  unsigned int success7 = 0;
+  unsigned int success8 = 0;
+  unsigned int success9 = 0;
 
   checkErrorsCuda(
       cudaMalloc((void **)&test_device_dataset, sizeof(float) * set_size));
@@ -151,7 +164,8 @@ unsigned int GPUNetwork::propagate_network(float *data_set, float *label_set,
 
     float outf = -1;
     float index = 0;
-
+    float desired = 0;
+/*
     for (int j = 0; j < 10; j++) {
       if (out[j] > outf) {
         outf = out[j];
@@ -159,19 +173,55 @@ unsigned int GPUNetwork::propagate_network(float *data_set, float *label_set,
       }
     }
 
-    float desired = 0;
     for (int j = 0; j < 10; j++) {
       if (label_set[j + i * (label_size / dataset_count)] == 1) {
         desired = j;
       }
-    }
+    } **/
+ for (int j = 0; j < 10; j++) {
+   index += out[j];
+   desired += label_set[j + i * (label_size / dataset_count)];
+ }
 
-    if (index == desired)
+    if ((int)std::round(index) == desired) {
       success++;
-    std::cout << "Pattern:  " << i << "  Label:  " << desired
+      if (desired == 0) {
+        success0++;
+      } else if (desired == 1) {
+        success1++;
+      } else if (desired == 2) {
+        success2++;
+      } else if (desired == 3) {
+        success3++;
+      } else if (desired == 4) {
+        success4++;
+      } else if (desired == 5) {
+        success5++;
+      } else if (desired == 6) {
+        success6++;
+      } else if (desired == 7) {
+        success7++;
+      } else if (desired == 8) {
+        success8++;
+      } else if (desired == 9) {
+        success9++;
+      }
+    }
+    std::cout << "Image:  " << i << "  Label:  " << desired
               << " Neural Net Result:  " << index
               << "  Neural Net Output:  " << outf << std::endl;
   }
+  std::cout << "Distribution: " << std::endl
+            << "0 " << success0 << std::endl
+            << "1 " << success1 << std::endl
+            << "2 " << success2 << std::endl
+            << "3 " << success3 << std::endl
+            << "4 " << success4 << std::endl
+            << "5 " << success5 << std::endl
+            << "6 " << success6 << std::endl
+            << "7 " << success7 << std::endl
+            << "8 " << success8 << std::endl
+            << "9 " << success9 << std::endl;
   return success;
 }
 
@@ -212,7 +262,7 @@ void GPUNetwork::train_network(float *data_set, size_t set_size,
 
       for (unsigned int l = 1; l < count_layers; l++) {
         if (l >= count_layers - 1) {
-          // std::cout << "l194 " << l << std::endl;
+           //std::cout << "l194 " << l << std::endl;
           Device::tile_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
               device_inputs[l], device_output, device_weights[l],
               device_wbias[l], input_size[l], neuron_size[l]);
@@ -234,20 +284,21 @@ void GPUNetwork::train_network(float *data_set, size_t set_size,
 
       for (int l = (int)count_layers - 2; l > -1; l--) {
         // std::cout << "l215 " << l << std::endl;
-        Device::
-            tile_layer_delta<<<mul_num_blocks[l+1], mul_threads_per_block[l+1]>>>(
-                device_delta_summands[l], device_weights[l + 1],
-                device_delta[l + 1], input_size[l], neuron_size[l]);
+        Device::tile_layer_delta<<<mul_num_blocks[l + 1],
+                                   mul_threads_per_block[l + 1]>>>(
+            device_delta_summands[l], device_weights[l + 1],
+            device_delta[l + 1], input_size[l], neuron_size[l]);
 
         Device::reduction<<<mul_num_blocks[l], mul_threads_per_block[l]>>>(
-            device_delta_summands[l], input_size[l] * neuron_size[l]);
+            device_delta_summands[l], device_delta_summands_out[l],
+            input_size[l] * neuron_size[l]);
 
         Device::tile_layer_train<<<num_blocks[l], threads_per_block[l]>>>(
-            device_inputs[l + 1], device_delta_summands[l], device_wbias[l],
+            device_inputs[l + 1], device_delta_summands_out[l], device_wbias[l],
             device_delta[l], device_awaited_output, learning_rate,
             input_size[l + 1], neuron_size[l + 1], input_size[l],
             neuron_size[l]);
-         //checkErrorsCuda(cudaDeviceSynchronize());
+        // checkErrorsCuda(cudaDeviceSynchronize());
       }
 
       for (unsigned int l = 0; l < count_layers; l++) {
