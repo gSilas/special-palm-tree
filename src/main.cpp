@@ -57,7 +57,7 @@ void read_Mnist_Label(std::string filename, std::vector<float> &vec) {
     for (int i = 0; i < number_of_images; ++i) {
       unsigned char temp = 0;
       file.read((char *)&temp, sizeof(temp));
-      std::cout << (int)temp << std::endl;
+      // std::cout << (int)temp << std::endl;
       for (int j = 0; j < 10; j++) {
         if ((int)temp != j) {
           vec.push_back(0.f);
