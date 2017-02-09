@@ -132,14 +132,14 @@ void test(GPUNetwork *net) {
 
 int main(int /*argc*/, char const ** /*argv*/) {
 
-  unsigned int inputs[] = {784, 300};
-  unsigned int neurons[] = {300, 10};
+  unsigned int inputs[] = {784, 392};
+  unsigned int neurons[] = {392, 10};
 
   GPUNetwork *net = new GPUNetwork;
   net->init_network(inputs, neurons, 2);
 
   float learning_rate = 0.01;
-  float momentum = 0.8;
+  float momentum = 0.9;
 
   // CPU 26m49s SUCCESS 9398
   // SUCCESS 9369

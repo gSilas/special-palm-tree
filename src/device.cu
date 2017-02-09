@@ -7,7 +7,6 @@ __global__ void Device::set_dataset(float *device_input, float *data_set,
   if (tid_x < input_size) {
 
     device_input[tid_x] = data_set[tid_x];
-    // printf("threadIdx %d set %f\n", tid_x, data_set[tid_x]);
   }
 }
 
@@ -30,7 +29,7 @@ __global__ void Device::set_layer_memory(float *device_delta,
 }
 
 __global__ void
-Device::tile_update_layer(float *device_input, float *device_weights,
+Device::neuron_update_layer(float *device_input, float *device_weights,
                           float *device_delta, float *device_prvdeltas,
                           float learning_rate, float momentum,
                           unsigned int input_size, unsigned int neuron_size) {
@@ -46,10 +45,10 @@ Device::tile_update_layer(float *device_input, float *device_weights,
     dw += momentum * device_prvdeltas[tid_x];
 
     device_prvdeltas[tid_x] = dw;
-    device_weights[tid_x] += dw;
+    device_weights[tid_x] += (1-momentum)*dw;
   }
 }
-__global__ void Device::tile_propagate_inlayer(
+__global__ void Device::neuron_propagate_inlayer(
     float *device_input, float *nl_device_input, float *device_weights,
     float *device_wbias, unsigned int input_size, unsigned int neuron_size) {
 
@@ -70,7 +69,7 @@ __global__ void Device::tile_propagate_inlayer(
   }
 }
 
-__global__ void Device::tile_propagate_layer(
+__global__ void Device::neuron_propagate_layer(
     float *device_input, float *nl_device_input, float *device_weights,
     float *device_wbias, unsigned int input_size, unsigned int neuron_size) {
 
@@ -93,7 +92,7 @@ __global__ void Device::tile_propagate_layer(
 }
 
 __global__ void
-Device::tile_outlayer_train(float *device_output, float *device_delta,
+Device::neuron_outlayer_train(float *device_output, float *device_delta,
                             float *device_wbias, float *device_awaited_output,
                             float learning_rate, unsigned int input_size,
                             unsigned int neuron_size) {
@@ -109,37 +108,36 @@ Device::tile_outlayer_train(float *device_output, float *device_delta,
   }
 }
 
-__inline__ __device__
-float warpReduceSum(float val) {
-  for (int offset = warpSize/2; offset > 0; offset /= 2)
+__inline__ __device__ float warpReduceSum(float val) {
+  for (int offset = warpSize / 2; offset > 0; offset /= 2)
     val += __shfl_down(val, offset);
   return val;
 }
 
-__inline__ __device__
-float blockReduceSum(float val) {
+__inline__ __device__ float blockReduceSum(float val) {
 
-  static __shared__ float shared[32]; // Shared mem for 32 partial sums
+  static __shared__ float shared[32];
   int lane = threadIdx.x % warpSize;
   int wid = threadIdx.x / warpSize;
 
-  val = warpReduceSum(val);     // Each warp performs partial reduction
+  val = warpReduceSum(val);
 
-  if (lane==0) shared[wid]=val; // Write reduced value to shared memory
+  if (lane == 0)
+    shared[wid] = val;
 
-  __syncthreads();              // Wait for all partial reductions
+  __syncthreads();
 
-  //read from shared memory only if that warp existed
   val = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : 0;
 
-  if (wid==0) val = warpReduceSum(val); //Final reduce within first warp
+  if (wid == 0)
+    val = warpReduceSum(val);
 
   return val;
 }
 
-__global__ void Device::reduction(float *data, float* out_data, unsigned int size) {
+__global__ void Device::reduction(float *data, float *out_data,
+                                  unsigned int size) {
   float sum = 0;
-  // reduce multiple elements per thread
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < size;
        i += blockDim.x * gridDim.x) {
     sum += data[i];
@@ -149,7 +147,7 @@ __global__ void Device::reduction(float *data, float* out_data, unsigned int siz
     out_data[blockIdx.x] = sum;
 }
 
-__global__ void Device::tile_layer_delta(float *device_delta_summands,
+__global__ void Device::neuron_layer_delta(float *device_delta_summands,
                                          float *pl_device_weights,
                                          float *pl_device_delta,
                                          unsigned int input_size,
@@ -162,7 +160,7 @@ __global__ void Device::tile_layer_delta(float *device_delta_summands,
   }
 }
 
-__global__ void Device::tile_layer_train(
+__global__ void Device::neuron_layer_train(
     float *device_output, float *device_delta_summands, float *device_wbias,
     float *device_delta, float *device_awaited_output, float learning_rate,
     unsigned int pl_input_size, unsigned int pl_neuron_size,

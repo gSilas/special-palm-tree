@@ -45,10 +45,10 @@ void writeImage(std::vector<std::vector<float>> &imagevec) {
 }
 
 void read_Mnist(std::string filename, std::vector<std::vector<float>> &vec) {
-  std::cout << "READING MNIST IMAGES " << std::endl;
+  std::cout << "Reading MNIST images!" << std::endl;
   std::ifstream file(filename, std::ios::binary);
   if (file.is_open()) {
-    std::cout << "FILE OPENED" << std::endl;
+    std::cout << "File opened!" << std::endl;
     int magic_number = 0;
     int number_of_images = 0;
     int n_rows = 0;
@@ -76,10 +76,10 @@ void read_Mnist(std::string filename, std::vector<std::vector<float>> &vec) {
 }
 
 void read_Mnist_Label(std::string filename, std::vector<float> &vec) {
-  std::cout << "READING MNIST LABEL " << std::endl;
+  std::cout << "Reading MNIST labels!" << std::endl;
   std::ifstream file(filename, std::ios::binary);
   if (file.is_open()) {
-    std::cout << "FILE OPENEND" << std::endl;
+    std::cout << "File opened!" << std::endl;
     int magic_number = 0;
     int number_of_images = 0;
     /*int n_rows = 0;*/
@@ -98,7 +98,7 @@ void read_Mnist_Label(std::string filename, std::vector<float> &vec) {
 
 void train(ParallelNetwork *net, int epochs, float learning_rate,
            float momentum) {
-  std::cout << "TRAINING " << std::endl;
+  std::cout << "Training started!" << std::endl;
   std::string imagefilename = "mnist/train-images-idx3-ubyte/data";
   std::string labelfilename = "mnist/train-labels-idx1-ubyte/data";
   int number_of_images = 60000;
@@ -122,90 +122,44 @@ void train(ParallelNetwork *net, int epochs, float learning_rate,
 
   for (int i = 0; i < number_of_images; i++) {
     float tmp[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::cout << labelvec[i] << std::endl;
     for (int j = 0; j < 10; j++) {
       if (j < labelvec[i]) {
         tmp[j] = 1.f;
+        std::cout << "1";
+
       } else {
         tmp[j] = 0;
+        std::cout << "0";
       }
     }
+    std::cout << std::endl;
     std::memcpy(&desiredout[i][0], tmp, 10 * sizeof(float));
   }
-  /*
-    for (int i = 0; i < number_of_images; i++) {
-      std::cout << "TRAINING "
-                << " " << desiredout[i][0] << " " << desiredout[i][1] << " "
-                << desiredout[i][2] << " " << desiredout[i][3] << " "
-                << desiredout[i][4] << " " << desiredout[i][5] << " "
-                << desiredout[i][6] << " " << desiredout[i][7] << " "
-                << desiredout[i][8] << " " << desiredout[i][9] << std::endl;
-    }*/
-  /*  std::cout << " NET RESULT: " << net->layers[2]->neurons[0]->output
-            << net->layers[2]->neurons[1]->output
-            << net->layers[2]->neurons[2]->output
-            << net->layers[2]->neurons[3]->output
-            << net->layers[2]->neurons[4]->output
-            << net->layers[2]->neurons[5]->output
-            << net->layers[2]->neurons[6]->output
-            << net->layers[2]->neurons[7]->output
-            << net->layers[2]->neurons[8]->output
-            << net->layers[2]->neurons[9]->output << std::endl;*/
-  std::cout << "TRAINING " << std::endl;
+  int j = 1;
   float error = 0.0;
+  std::cout << "Epoch: " << j << "/" << epochs << std::endl;
   for (int i = 0; i < number_of_images; i++) {
-    // std::cout << i << std::endl;
     error += (float)net->train_network(&imagevec[i][0], desiredout[i],
                                        learning_rate, momentum);
-    /*    std::cout << " NET RESULT: " << net->layers[2]->neurons[0]->output
-                  << net->layers[2]->neurons[1]->output
-                  << net->layers[2]->neurons[2]->output
-                  << net->layers[2]->neurons[3]->output
-                  << net->layers[2]->neurons[4]->output
-                  << net->layers[2]->neurons[5]->output
-                  << net->layers[2]->neurons[6]->output
-                  << net->layers[2]->neurons[7]->output
-                  << net->layers[2]->neurons[8]->output
-                  << net->layers[2]->neurons[9]->output << " " <<
-       desiredout[i][0]
-                  << desiredout[i][1] << desiredout[i][2] << desiredout[i][3]
-                  << desiredout[i][4] << desiredout[i][5] << desiredout[i][6]
-                  << desiredout[i][7] << desiredout[i][8] << desiredout[i][9]
-                  << std::endl;*/
   }
-
+  j++;
   error /= number_of_images;
 
-  int j = 0;
-
-  while (error > 0.000001 && j < epochs - 1) {
-    std::cout << "EPOCH " << j << std::endl;
+  while (error > 0.000001 && j < epochs + 1) {
+    std::cout << "Epoch: " << j << "/" << epochs << std::endl;
     for (int i = 0; i < number_of_images; i++) {
       error += (float)net->train_network(&imagevec[i][0], desiredout[i],
                                          learning_rate, momentum);
-
-      /*std::cout << " NET RESULT: " << net->layers[2]->neurons[0]->output
-                << net->layers[2]->neurons[1]->output
-                << net->layers[2]->neurons[2]->output
-                << net->layers[2]->neurons[3]->output
-                << net->layers[2]->neurons[4]->output
-                << net->layers[2]->neurons[5]->output
-                << net->layers[2]->neurons[6]->output
-                << net->layers[2]->neurons[7]->output
-                << net->layers[2]->neurons[8]->output
-                << net->layers[2]->neurons[9]->output << " " << desiredout[i][0]
-                << desiredout[i][1] << desiredout[i][2] << desiredout[i][3]
-                << desiredout[i][4] << desiredout[i][5] << desiredout[i][6]
-                << desiredout[i][7] << desiredout[i][8] << desiredout[i][9]
-                << std::endl;*/
     }
     error /= number_of_images;
     j++;
-    std::cout << "ERROR " << error << std::endl;
+    std::cout << "Error: " << error << std::endl;
   }
 }
 
 void test(ParallelNetwork *net) {
-  std::cout << "TESTING" << std::endl;
+  std::cout << "Testing started!" << std::endl;
   std::string imagefilename = "mnist/t10k-images-idx3-ubyte/data";
   std::string labelfilename = "mnist/t10k-labels-idx1-ubyte/data";
   int number_of_images = 10000;
@@ -236,57 +190,13 @@ void test(ParallelNetwork *net) {
     if (out == labelvec[i])
       success++;
 
-    std::cout << "TESTED PATTERN " << i << " DESIRED OUTPUT: " << labelvec[i]
-              << " NET RESULT: " << out << std::endl;
+    std::cout << "Tested Image: " << i << " Desired label: " << labelvec[i]
+              << " Network Result: " << out << std::endl;
   }
-  std::cout << "SUCCESS " << success << std::endl;
+  std::cout << "Successfull Recognitions: " << success << std::endl;
 }
 
 int main(int /*argc*/, char const ** /*argv*/) {
-  /*
-    float pattern[4][2] = {{0, 0}, {1, 1}, {0, 1}, {1, 0}};
-    float desiredout[4][1] = {{0}, {0}, {1}, {1}};
-    unsigned int inputs[] = {2, 3};
-    unsigned int neurons[] = {3, 1};
-
-    ParallelNetwork *net = new ParallelNetwork;
-    net->init_network(inputs, neurons, 2);
-
-    float learning_rate = 0.3f;
-    float momentum = 0.8f;
-
-    float error = 0.0;
-
-    for (size_t i = 0; i < 4; i++) {
-      error += (float)net->train_network(pattern[i], desiredout[i],
-                                          learning_rate, momentum);
-    }
-
-    error /= 4;
-
-    int j = 0;
-
-    while (error > 0.01f && j < 20000) {
-      std::cout << "EPOCH " << j << std::endl;
-      for (size_t i = 0; i < 4; i++) {
-        error += (float)net->train_network(pattern[i], desiredout[i],
-                                            learning_rate, momentum);
-      }
-      error /= 4;
-      j++;
-      std::cout << "ERROR " << error << std::endl;
-    }
-
-    for (int i = 0; i < 4; i++) {
-
-      net->propagate_network(pattern[i]);
-
-      std::cout << "TESTED PATTERN " << i << " DESIRED OUTPUT: " <<
-    *desiredout[i]
-                << " NET RESULT: "
-                << std::round(net->layers[1]->neurons[0]->output) << std::endl;
-    }
-    return 0;*/
 
   unsigned int inputs[] = {784, 300};
   unsigned int neurons[] = {300, 10};

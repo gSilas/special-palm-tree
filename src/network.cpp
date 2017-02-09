@@ -42,11 +42,6 @@ float Network::train_network(const float *input, const float *awaited_output,
 
     output_layer->neurons[i].delta =
         (awaited_output[i] - out) * out * (1 - out);
-    /*
-        std::cout << " " << i << " | " << out << " " << awaited_output[i] << " |
-       "
-                  << (awaited_output[i] - out) * out * (1 - out) << std::endl;
-       */
 
     output_layer->neurons[i].wbias +=
         learning_rate * (awaited_output[i] - out) * out * (1 - out);
@@ -62,9 +57,6 @@ float Network::train_network(const float *input, const float *awaited_output,
     }
     for (unsigned int n = 0; n < layers[l]->count_neurons; n++) {
       out = layers[l]->neurons[n].output;
-      /*  std::cout << " " << l << " " << n << " "
-                  << " | " << out << " " << delta << " | "
-                  << out * (1 - out) * delta << std::endl; */
       layers[l]->neurons[n].delta = out * (1 - out) * delta;
       layers[l]->neurons[n].wbias += learning_rate * out * (1 - out) * delta;
     }
@@ -77,8 +69,6 @@ float Network::train_network(const float *input, const float *awaited_output,
         dw += momentum * layers[l]->neurons[n].prvdeltas[i];
         layers[l]->neurons[n].prvdeltas[i] = dw;
         layers[l]->neurons[n].weights[i] += dw;
-        /*std::cout << " " << l << " " << n << " " << i << " | " << dw << " "
-                  << layers[l]->neurons[n]->weights[i] << std::endl;*/
       }
     }
   }

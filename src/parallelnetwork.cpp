@@ -33,18 +33,8 @@ void ParallelNetwork::propagate_network(const float *input) {
     for (unsigned int i = 0; i <= num_threads; i++) {
       tiling[i] = i * std::floor(layers[l]->count_neurons / num_threads);
     }
-    /*
-        std::cout << "STARTING WITH " << num_threads << std::endl;
 
-        std::cout << tiling[0] << std::endl;
-        std::cout << tiling[1] << std::endl;
-        std::cout << tiling[2] << std::endl;
-        std::cout << tiling[3] << std::endl;
-    */
     for (unsigned int i = 0; i < num_threads - 1; i++) {
-      /*  std::cout << "THREAD " << i << " with Start " << tiling[i] << " and
-         End "
-                  << tiling[i + 1] << std::endl;*/
       threads.push_back(std::thread(&Parallel::tile_propagate_layer, layers[l],
                                     tiling[i], tiling[i + 1]));
     }
@@ -52,11 +42,7 @@ void ParallelNetwork::propagate_network(const float *input) {
     threads.push_back(std::thread(&Parallel::tile_propagate_layer, layers[l],
                                   tiling[num_threads - 1],
                                   layers[l]->count_neurons));
-    /*
-        std::cout << "THREAD " << num_threads - 1 << " with Start "
-                  << tiling[num_threads - 1] << " and End "
-                  << layers[l]->count_neurons << std::endl;
-    */
+
     for (unsigned int i = 0; i < threads.size(); i++) {
       threads[i].join();
     }
@@ -92,7 +78,6 @@ float ParallelNetwork::train_network(const float *input,
     output_layer->neurons[i].wbias +=
         learning_rate * (awaited_output[i] - out) * out * (1 - out);
   }
-  // std::cout << "THREAD " << std::endl;
 
   for (int l = (int)count_layers - 2; l >= 0; l--) {
     std::vector<std::thread> threads;
@@ -110,14 +95,7 @@ float ParallelNetwork::train_network(const float *input,
     for (unsigned int i = 0; i <= num_threads; i++) {
       tiling[i] = i * std::floor(layers[l]->count_neurons / num_threads);
     }
-    /*
-        std::cout << "STARTING WITH " << num_threads << std::endl;
 
-        std::cout << tiling[0] << std::endl;
-        std::cout << tiling[1] << std::endl;
-        std::cout << tiling[2] << std::endl;
-        std::cout << tiling[3] << std::endl;
-    */
     for (unsigned int i = 0; i < num_threads - 1; i++) {
       threads.push_back(std::thread(&Parallel::tile_layer_train, layers[l],
                                     layers[l + 1], tiling[i], tiling[i + 1],
@@ -149,14 +127,7 @@ float ParallelNetwork::train_network(const float *input,
     for (unsigned int i = 0; i <= num_threads; i++) {
       tiling[i] = i * std::floor(layers[l]->count_neurons / num_threads);
     }
-    /*
-        std::cout << "STARTING WITH " << num_threads << std::endl;
 
-        std::cout << tiling[0] << std::endl;
-        std::cout << tiling[1] << std::endl;
-        std::cout << tiling[2] << std::endl;
-        std::cout << tiling[3] << std::endl;
-    */
     for (unsigned int i = 0; i < num_threads; i++) {
       threads.push_back(std::thread(&Parallel::tile_layer_update, layers[l],
                                     tiling[i], tiling[i + 1], learning_rate,

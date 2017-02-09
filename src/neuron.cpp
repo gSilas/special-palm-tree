@@ -14,8 +14,8 @@ void Neuron::init_neuron(unsigned int inputsize) {
   prvdeltas = new float[inputsize];
 
   for (unsigned int i = 0; i < inputsize; i++) {
-    weights[i] =
-        0; // static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    weights[i] = 0; // static_cast<float>(rand()) /
+                    // static_cast<float>(RAND_MAX);
     prvdeltas[i] = 0;
   }
 }

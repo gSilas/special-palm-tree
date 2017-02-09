@@ -3,12 +3,12 @@
 void Layer::init_layer(unsigned int insize, unsigned int neuronsize) {
 
   neurons = new Neuron[neuronsize];
-  input = new float[insize];
 
   for (unsigned int i = 0; i < neuronsize; i++) {
     neurons[i].init_neuron(insize);
   }
 
+  input = new float[insize];
   count_neurons = neuronsize;
   count_input = insize;
 }
@@ -23,16 +23,11 @@ void Layer::propagate_layer() {
 
     for (unsigned int j = 0; j < count_input; j++) {
       output += (neurons[i].weights[j] * input[j]);
-      /*std::cout << i << " " << j << " | " << neurons[i]->weights[j] << " | "
-                << input[j] << " " << output << std::endl;*/
     }
 
     output += neurons[i].wbias;
 
     neurons[i].output = 1 / (1 + exp(-output));
-    /*
-        std::cout << i << " | " << output << " | " << 1 / (1 + exp(output))
-                  << std::endl; */
   }
 }
 
