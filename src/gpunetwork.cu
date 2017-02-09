@@ -49,8 +49,6 @@ void GPUNetwork::init_network(unsigned int *inputs, unsigned int *neurons,
     } else if (0 != neurons[l] * inputs[l] % mul_num_blocks[l]) {
       mul_num_blocks[l]++;
     }
-
-    // std::cout << "num_blocks = " << num_blocks[l] << std::endl;
   }
   device_inputs = new float *[clayers];
 
@@ -146,12 +144,10 @@ unsigned int GPUNetwork::propagate_network(float *data_set, float *label_set,
 
     for (unsigned int l = 1; l < count_layers; l++) {
       if (l >= count_layers - 1) {
-        // std::cout << "l115 " << l << std::endl;
         Device::neuron_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
             device_inputs[l], device_output, device_weights[l], device_wbias[l],
             input_size[l], neuron_size[l]);
       } else {
-        // std::cout << "l121 " << l << std::endl;
         Device::neuron_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
             device_inputs[l], device_inputs[l + 1], device_weights[l],
             device_wbias[l], input_size[l], neuron_size[l]);
@@ -177,11 +173,7 @@ unsigned int GPUNetwork::propagate_network(float *data_set, float *label_set,
       if (label_set[j + i * (label_size / dataset_count)] == 1) {
         desired = j;
       }
-    } /*
- for (int j = 0; j < 10; j++) {
-   index += out[j];
-   desired += label_set[j + i * (label_size / dataset_count)];
- }*/
+    }
 
     if ((int)std::round(index) == desired) {
       success++;
@@ -262,12 +254,10 @@ void GPUNetwork::train_network(float *data_set, size_t set_size,
 
       for (unsigned int l = 1; l < count_layers; l++) {
         if (l >= count_layers - 1) {
-           //std::cout << "l194 " << l << std::endl;
           Device::neuron_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
               device_inputs[l], device_output, device_weights[l],
               device_wbias[l], input_size[l], neuron_size[l]);
         } else {
-          // std::cout << "l199 " << l << std::endl;
           Device::neuron_propagate_layer<<<num_blocks[l], threads_per_block[l]>>>(
               device_inputs[l], device_inputs[l + 1], device_weights[l],
               device_wbias[l], input_size[l], neuron_size[l]);
@@ -283,7 +273,6 @@ void GPUNetwork::train_network(float *data_set, size_t set_size,
       // checkErrorsCuda(cudaDeviceSynchronize());
 
       for (int l = (int)count_layers - 2; l > -1; l--) {
-        // std::cout << "l215 " << l << std::endl;
         Device::neuron_layer_delta<<<mul_num_blocks[l + 1],
                                    mul_threads_per_block[l + 1]>>>(
             device_delta_summands[l], device_weights[l + 1],
@@ -302,7 +291,6 @@ void GPUNetwork::train_network(float *data_set, size_t set_size,
       }
 
       for (unsigned int l = 0; l < count_layers; l++) {
-        // std::cout << "l225 " << l << std::endl;
         Device::
             neuron_update_layer<<<mul_num_blocks[l], mul_threads_per_block[l]>>>(
                 device_inputs[l], device_weights[l], device_delta[l],
